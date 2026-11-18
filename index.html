@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI Playground</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✦</text></svg>">
+<style>
+:root{--bg:#0d1220;--p:#141b2d;--p2:#1c2540;--b:#2a3556;--t:#e8ecf8;--m:#8e9ab8;--a:#36c9b8;--at:#06201d;--err:#ff7a7a}
+@media(prefers-color-scheme:light){:root{--bg:#f3f5fa;--p:#fff;--p2:#e9edf6;--b:#d5dbea;--t:#151b2e;--m:#66718f;--a:#0f8f84;--at:#fff;--err:#c62828}}
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{font:14px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--t);display:flex;flex-direction:column}
+button,input,select,textarea{font:inherit;color:inherit}
+button{background:var(--p2);border:1px solid var(--b);border-radius:8px;padding:6px 11px;cursor:pointer}
+button:hover{border-color:var(--a)}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--a);outline-offset:1px}
+button.pri{background:var(--a);border-color:var(--a);color:var(--at);font-weight:600}
+header{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--b);background:var(--p)}
+header b{font-size:15px;letter-spacing:.2px;margin-right:6px}
+.sp{flex:1}
+.seg{display:flex;border:1px solid var(--b);border-radius:9px;overflow:hidden}
+.seg button{border:0;border-radius:0;background:none}.seg .on{background:var(--a);color:var(--at);font-weight:600}
+#mdl{max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--m)}
+main{flex:1;display:grid;grid-template-columns:minmax(300px,38%) 1fr;grid-template-rows:minmax(0,1fr);min-height:0}
+#chat{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--b);background:var(--p)}
+#msgs{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+.m{max-width:94%;padding:9px 12px;border-radius:12px;overflow-wrap:anywhere}
+.user{align-self:flex-end;background:var(--a);color:var(--at)}
+.assistant{align-self:flex-start;background:var(--p2);border:1px solid var(--b)}
+.m code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.92em;background:var(--bg);padding:1px 5px;border-radius:4px}
+pre{margin:8px 0;background:var(--bg);border:1px solid var(--b);border-radius:8px;overflow:hidden}
+.ph{display:flex;justify-content:space-between;align-items:center;padding:3px 8px;background:var(--p);color:var(--m);font-size:12px}
+.ph button{padding:1px 8px;margin-left:4px;font-size:12px}
+.m pre code{display:block;padding:8px 10px;max-height:240px;overflow:auto;white-space:pre;background:none;font-size:12px;line-height:1.45}
+.em{margin:auto;text-align:center;max-width:390px}.em h2{margin:0 0 6px;font-size:20px}.em p{color:var(--m);margin:0 0 14px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}.chip{border-radius:99px}
+#bar{display:flex;gap:8px;padding:10px;border-top:1px solid var(--b);align-items:flex-end}
+#inp{flex:1;resize:none;background:var(--bg);border:1px solid var(--b);border-radius:10px;padding:8px 10px;max-height:160px}
+#ws{display:flex;flex-direction:column;min-height:0;min-width:0}
+.tabs{display:flex;gap:4px;padding:6px 8px;border-bottom:1px solid var(--b);background:var(--p);align-items:center;flex-wrap:wrap}
+.tabs .tb{border:0;background:none}.tabs .on{background:var(--p2);color:var(--a)}
+#pv,#cd,#cn{flex:1;min-height:0;width:100%;border:0}
+#pv{background:#fff}
+#cd{background:var(--bg);padding:12px;font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;resize:none;tab-size:2}
+#cn{padding:10px;overflow:auto;font:12px/1.5 ui-monospace,Menlo,Consolas,monospace}
+.err{color:var(--err)}.log{color:var(--m)}
+[hidden]{display:none!important}
+dialog{background:var(--p);color:var(--t);border:1px solid var(--b);border-radius:14px;padding:18px;width:min(440px,92vw)}
+dialog::backdrop{background:#0009}
+dialog label{display:block;margin:12px 0 4px;color:var(--m);font-size:12px}
+dialog input,dialog select{width:100%;padding:8px;background:var(--bg);border:1px solid var(--b);border-radius:8px}
+.hint{color:var(--m);font-size:12px}
+.mob{display:none}
+@media(max-width:800px){main{grid-template-columns:1fr}.mob{display:inline-block}#mdl{display:none}
+body[data-v=chat] #ws,body[data-v=ws] #chat{display:none}}
+</style>
+</head>
+<body data-v="chat">
+<header>
+  <b>✦ AI Playground</b>
+  <div class="seg"><button id="mChat">Chat</button><button id="mBuild">Build</button></div>
+  <span class="sp"></span>
+  <button class="mob" id="vw"></button>
+  <button id="mdl"></button>
+  <button id="nw" title="New project">New</button>
+  <button id="gear" title="Settings" aria-label="Settings">⚙</button>
+</header>
+<main>
+  <section id="chat">
+    <div id="msgs"></div>
+    <div id="bar"><textarea id="inp" rows="1"></textarea><button class="pri" id="go">Send</button></div>
+  </section>
+  <section id="ws">
+    <div class="tabs">
+      <button class="tb" id="t_pv">Preview</button><button class="tb" id="t_cd">Code</button><button class="tb" id="t_cn">Console</button>
+      <span class="sp"></span>
+      <button id="rn">Run</button><button id="dl" title="Download .html">Download</button><button id="op" title="Open in new tab">Open</button>
+    </div>
+    <iframe id="pv" title="Preview" sandbox="allow-scripts allow-forms allow-modals allow-pointer-lock"></iframe>
+    <textarea id="cd" spellcheck="false" hidden></textarea>
+    <div id="cn" hidden><button class="pri" id="fix" hidden>Ask AI to fix these errors</button><div id="lg"></div></div>
+  </section>
+</main>
+
+<dialog id="set">
+  <form method="dialog" id="sfm">
+    <h3 style="margin:0 0 4px">Connect your AI</h3>
+    <div class="hint">Bring your own endpoint. Your key stays in this browser and is sent only to the URL below. The provider must allow browser (CORS) requests.</div>
+    <label for="pre">Preset</label>
+    <select id="pre"><option value="">Custom</option>
+      <option value="openai|https://api.openai.com/v1">OpenAI</option>
+      <option value="openai|https://openrouter.ai/api/v1">OpenRouter</option>
+      <option value="openai|https://api.groq.com/openai/v1">Groq</option>
+      <option value="openai|http://localhost:11434/v1">Ollama (local)</option>
+      <option value="anthropic|https://api.anthropic.com">Anthropic</option></select>
+    <label for="fmt">API format</label>
+    <select id="fmt"><option value="openai">OpenAI-compatible (/chat/completions)</option><option value="anthropic">Anthropic (/v1/messages)</option></select>
+    <label for="url">Base URL</label>
+    <input id="url" placeholder="https://api.openai.com/v1" autocomplete="off">
+    <label for="key">API key</label>
+    <input id="key" type="password" autocomplete="off" placeholder="Optional for local models">
+    <label for="mod">Model</label>
+    <div style="display:flex;gap:6px"><input id="mod" list="dl" placeholder="Model name" autocomplete="off"><button type="button" id="fm">Fetch</button></div>
+    <datalist id="dl"></datalist>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button type="button" id="cl">Cancel</button><button class="pri" id="ok" value="ok">Save</button></div>
+  </form>
+</dialog>
+
+<script>
+const $=i=>document.getElementById(i),F='`'.repeat(3);
+const ld=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}};
+const put=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}};
+let S=ld('pg_s',{fmt:'openai',url:'https://api.openai.com/v1',key:'',model:''}),M=ld('pg_m',[]),code=ld('pg_c',''),mode=ld('pg_mode','build'),busy=null,errs=[];
+const fr=$('pv'),cd=$('cd'),msgs=$('msgs'),inp=$('inp');
+
+/* ---- What the AI is told about its environment ---- */
+const ENV=`You are the AI inside "AI Playground", a static, browser-only web app (hosted on GitHub Pages) where the user chats with you and builds things.
+LAYOUT: chat on the left; on the right a live Preview (sandboxed iframe), an editable Code tab and a Console tab. Two modes: CHAT (conversation, code only when useful) and BUILD (you create or update the project).
+RUNTIME of everything you build:
+- One self-contained HTML file with inline CSS and JS, rendered through iframe srcdoc (sandbox: allow-scripts, allow-forms, allow-modals, allow-pointer-lock; no same-origin). No backend, server or file system. localStorage, cookies and navigation may fail: keep state in memory.
+- No build step: plain HTML/CSS/JS only (no JSX, npm or local imports). Extra libraries only via <script src> from cdnjs.cloudflare.com or cdn.jsdelivr.net, with pinned versions.
+- three.js r128 is PRELOADED as global THREE, with THREE.OrbitControls and THREE.OBJExporter, whenever your code mentions THREE. Never add your own three.js tag. Use r128 APIs only (no CapsuleGeometry, no ES-module imports).
+- Avoid external images, fonts and APIs (they may be blocked): use CSS, inline SVG, canvas or procedural geometry.
+- console.log/warn/error output and uncaught exceptions show up in the user's Console tab, and the user can send them back to you to fix.
+- Make pages responsive (full viewport, resize handlers) with a clean modern look.
+3D GUIDE: Scene + PerspectiveCamera + WebGLRenderer({antialias:true}), Ambient + Directional lights, OrbitControls, a requestAnimationFrame loop, a resize handler. Build characters and objects from primitives inside THREE.Group. For sculpting or organic shapes, use a subdivided IcosahedronGeometry(radius, 5+), move vertices near a Raycaster hit, then call computeVertexNormals() and set position.needsUpdate. Export with new THREE.OBJExporter().parse(object) and download it through a Blob.
+`;
+const SYS=()=>ENV+(mode==='build'
+  ?`CURRENT MODE: BUILD. Reply with at most three short sentences, then ONE complete ${F}html code block holding the entire file. Never send partial snippets or diffs: always return the full updated file.\n`+(code?`Current project file:\n${F}html\n${code}\n${F}`:'There is no project yet: start fresh.')
+  :`CURRENT MODE: CHAT. Answer helpfully and concisely. Only output a full ${F}html file when asked to build or run something.`);
+
+/* ---- Preview document ---- */
+const HOOK='<script>onerror=(m,s,l)=>parent.postMessage({pg:"err",m:m+" (line "+l+")"},"*");addEventListener("unhandledrejection",e=>parent.postMessage({pg:"err",m:String(e.reason)},"*"));["log","warn","error"].forEach(k=>{const o=console[k];console[k]=(...a)=>{parent.postMessage({pg:k=="error"?"err":"log",m:a.map(String).join(" ")},"*");o.apply(console,a)}})<\/script>';
+const LIBS=['https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js','https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js','https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/OBJExporter.js'];
+const PH='<body style="margin:0;height:100vh;display:grid;place-items:center;font:14px system-ui;color:#778">Your creation appears here</body>';
+function doc(c,h){
+  const i=(h?HOOK:'')+(/THREE/.test(c)?LIBS.map(u=>`<script src="${u}"><\/script>`).join(''):'');
+  const re=/<head(\s[^>]*)?>/i;
+  return re.test(c)?c.replace(re,m=>m+i):`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">${i}</head><body>${c}</body></html>`;
+}
+function run(){errs=[];$('lg').innerHTML='';$('t_cn').textContent='Console';$('fix').hidden=true;fr.srcdoc=code?doc(code,1):PH}
+function setCode(c){code=c;cd.value=c;put('pg_c',c);run()}
+addEventListener('message',e=>{
+  const d=e.data;if(e.source!==fr.contentWindow||!d||!d.pg)return;
+  if(d.pg==='err')errs.push(d.m);
+  $('lg').insertAdjacentHTML('beforeend',`<div class="${d.pg}">${esc(d.m)}</div>`);
+  $('t_cn').textContent='Console'+(errs.length?` (${errs.length})`:'');$('fix').hidden=!errs.length;
+});
+
+/* ---- Chat rendering ---- */
+const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+function md(t){
+  return t.split(/(```[\s\S]*?(?:```|$))/).map(p=>{
+    if(p.startsWith('```')){
+      const m=p.match(/^```(\w*)\n?([\s\S]*?)(?:```)?$/);
+      return `<pre><div class="ph"><span>${m[1]||'code'}</span><span><button data-a="copy">Copy</button>${/html/i.test(m[1])?'<button data-a="run">Run</button>':''}</span></div><code>${esc(m[2])}</code></pre>`;
+    }
+    return esc(p).replace(/`([^`\n]+)`/g,'<code>$1</code>').replace(/\*\*([^*\n]+)\*\*/g,'<b>$1</b>').replace(/\n/g,'<br>');
+  }).join('');
+}
+const CH=[['Landing page','Build a modern landing page for a fictional coffee brand with hero, features, pricing and footer.'],['3D scene','Create a 3D scene with a glossy rotating cube on a ground plane, soft lights, shadows and orbit controls.'],['3D sculpting','Create a 3D sculpting playground: a high-res sphere I can push and pull with a mouse brush, with a brush size slider and an Export OBJ button.'],['3D character','Build a simple low-poly 3D character from primitives with an idle animation and orbit controls.'],['Snake game','Build a polished Snake game with score, restart, keyboard and touch controls.']];
+const EMPTY=`<div class="em"><h2>What shall we build?</h2><p>Chat with your own AI, or switch to Build and it will create sites, apps, games and 3D scenes that run live on the right.</p><div class="chips">${CH.map(c=>`<button class="chip" data-p="${c[1]}">${c[0]}</button>`).join('')}</div></div>`;
+const bub=m=>m.role==='user'?esc(m.content).replace(/\n/g,'<br>'):(md(m.content)||'<i>…</i>');
+function render(){msgs.innerHTML=M.length?M.map(m=>`<div class="m ${m.role}">${bub(m)}</div>`).join(''):EMPTY;msgs.scrollTop=msgs.scrollHeight}
+function paint(){const l=msgs.lastElementChild;if(l){l.innerHTML=bub(M[M.length-1]);msgs.scrollTop=msgs.scrollHeight}}
+msgs.onclick=e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.p){setMode('build');send(b.dataset.p);return}
+  const pre=b.closest('pre');if(!pre)return;
+  const c=pre.querySelector('code').textContent;
+  if(b.dataset.a==='copy'){navigator.clipboard.writeText(c).then(()=>b.textContent='Copied')}
+  else{setCode(c);tab('pv');view('ws')}
+};
+
+/* ---- API ---- */
+const A=()=>S.fmt==='anthropic';
+function api(p){let b=(S.url||'').trim().replace(/\/+$/,'');if(A())b=b.replace(/\/v1$/,'')+'/v1';return b+p}
+function hdr(){const h={'Content-Type':'application/json'};if(A()){h['x-api-key']=S.key;h['anthropic-version']='2023-06-01';h['anthropic-dangerous-direct-browser-access']='true'}else if(S.key)h.Authorization='Bearer '+S.key;return h}
+async function stream(msgs,on){
+  const sys=SYS();
+  const body=A()?{model:S.model,max_tokens:8192,system:sys,messages:msgs,stream:true}:{model:S.model,messages:[{role:'system',content:sys},...msgs],stream:true};
+  const r=await fetch(api(A()?'/messages':'/chat/completions'),{method:'POST',headers:hdr(),body:JSON.stringify(body),signal:busy.signal});
+  if(!r.ok)throw new Error(r.status+' '+(await r.text()).slice(0,300));
+  const rd=r.body.getReader(),dec=new TextDecoder();let buf='';
+  for(;;){
+    const{done,value}=await rd.read();if(done)break;
+    buf+=dec.decode(value,{stream:true});const ls=buf.split('\n');buf=ls.pop();
+    for(const l of ls){
+      if(!l.startsWith('data:'))continue;const d=l.slice(5).trim();if(!d||d==='[DONE]')continue;
+      try{const j=JSON.parse(d);const t=j.choices?.[0]?.delta?.content??(j.type==='content_block_delta'?j.delta?.text:'');if(t)on(t)}catch{}
+    }
+  }
+}
+function extract(t){
+  const r=[...t.matchAll(/```(?:html)?[ \t]*\n([\s\S]*?)```/gi)].map(m=>m[1]).filter(c=>/<(!doctype|html|body|script|div|canvas)/i.test(c));
+  return r.length?r[r.length-1]:null;
+}
+async function send(text){
+  if(!text.trim()||busy)return;
+  if(!S.url||!S.model){openSet();return}
+  M.push({role:'user',content:text},{role:'assistant',content:''});render();
+  busy=new AbortController();ui();
+  const a=M[M.length-1];
+  try{await stream(M.filter(m=>m.content&&!m.err).slice(0,-1).concat(),t=>{a.content+=t;paint()})}
+  catch(e){if(e.name!=='AbortError'){
+    const w='⚠️ '+(e instanceof TypeError?'Network or CORS error. Check the base URL and that the provider allows browser requests.':e.message);
+    if(a.content)a.content+='\n\n'+w;else{a.content=w;a.err=1}}}
+  busy=null;ui();
+  if(!a.content)M.pop();
+  render();put('pg_m',M);
+  if(mode==='build'&&!a.err){const c=extract(a.content);if(c){setCode(c);tab('pv');view('ws')}}
+}
+
+/* ---- UI wiring ---- */
+function ui(){$('go').textContent=busy?'Stop':'Send';$('go').classList.toggle('pri',!busy)}
+function setMode(m){mode=m;put('pg_mode',m);$('mChat').classList.toggle('on',m==='chat');$('mBuild').classList.toggle('on',m==='build');inp.placeholder=m==='build'?'Describe what to build or change…':'Message your AI…'}
+function view(v){document.body.dataset.v=v;$('vw').textContent=v==='chat'?'Preview ▸':'◂ Chat'}
+function tab(t){['pv','cd','cn'].forEach(x=>{$(x).hidden=x!==t;$('t_'+x).classList.toggle('on',x===t)})}
+const updMdl=()=>$('mdl').textContent=S.model||'Connect AI';
+function openSet(){$('fmt').value=S.fmt;$('url').value=S.url;$('key').value=S.key;$('mod').value=S.model;$('pre').value='';$('set').showModal()}
+function rd(){S={fmt:$('fmt').value,url:$('url').value.trim(),key:$('key').value.trim(),model:$('mod').value.trim()};put('pg_s',S);updMdl()}
+
+$('mChat').onclick=()=>setMode('chat');$('mBuild').onclick=()=>setMode('build');
+$('vw').onclick=()=>view(document.body.dataset.v==='chat'?'ws':'chat');
+$('t_pv').onclick=()=>tab('pv');$('t_cd').onclick=()=>tab('cd');$('t_cn').onclick=()=>tab('cn');
+$('gear').onclick=$('mdl').onclick=openSet;
+$('cl').onclick=()=>$('set').close();
+$('sfm').onsubmit=rd;
+$('pre').onchange=()=>{const[f,u]=$('pre').value.split('|');if(f){$('fmt').value=f;$('url').value=u}};
+$('fm').onclick=async()=>{
+  rd();
+  try{const r=await fetch(api('/models'),{headers:hdr()});const j=await r.json();
+    $('dl').innerHTML=(j.data||j.models||[]).map(m=>`<option value="${esc(m.id||m.name||'')}">`).join('');$('fm').textContent='Fetched ✓'}
+  catch(e){alert('Could not fetch models: '+e.message)}
+};
+$('nw').onclick=()=>{if(confirm('Clear the chat and the current project?')){M=[];put('pg_m',M);setCode('');render()}};
+$('go').onclick=()=>{
+  if(busy){busy.abort();return}
+  if(!S.url||!S.model){openSet();return}
+  const t=inp.value;inp.value='';inp.style.height='auto';send(t);
+};
+inp.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();$('go').click()}};
+inp.oninput=()=>{inp.style.height='auto';inp.style.height=Math.min(inp.scrollHeight,160)+'px'};
+cd.oninput=()=>{code=cd.value;put('pg_c',code)};
+cd.onkeydown=e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){run();tab('pv')}};
+$('rn').onclick=()=>{code=cd.value||code;run();tab('pv')};
+$('fix').onclick=()=>{setMode('build');view('chat');send('The preview shows these errors. Please fix them and return the full updated file:\n'+errs.slice(0,8).join('\n'))};
+$('dl').onclick=()=>{if(!code)return;const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([doc(code,0)],{type:'text/html'}));a.download='playground.html';a.click()};
+$('op').onclick=()=>{if(code)window.open(URL.createObjectURL(new Blob([doc(code,0)],{type:'text/html'})))};
+
+setMode(mode);view('chat');tab('pv');cd.value=code;run();render();ui();updMdl();
+if(!S.model)openSet();
+</script>
+</body>
+</html>
