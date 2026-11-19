@@ -230,6 +230,69 @@
       transform-origin: center top;
       will-change: transform;
     }
+
+    /* ===================================================================
+       CUTE AI TAMAGOTCHI ANIMATIONS (Eye-safe, soft motion)
+       =================================================================== */
+    @keyframes petFloat {
+      0%, 100% { transform: translateY(0px) scale(1, 1); }
+      50% { transform: translateY(-6px) scale(0.98, 1.02); }
+    }
+    @keyframes petSquish {
+      0% { transform: scale(1, 1); }
+      30% { transform: scale(1.18, 0.82) translateY(5px); }
+      60% { transform: scale(0.92, 1.1) translateY(-8px); }
+      100% { transform: scale(1, 1); }
+    }
+    @keyframes petChomp {
+      0%, 100% { transform: scale(1, 1) rotate(0deg); }
+      25% { transform: scale(1.08, 0.92) rotate(-3deg); }
+      50% { transform: scale(0.95, 1.06) rotate(3deg); }
+      75% { transform: scale(1.06, 0.94) rotate(-2deg); }
+    }
+    @keyframes petBlink {
+      0%, 92%, 100% { transform: scaleY(1); }
+      96% { transform: scaleY(0.1); }
+    }
+    @keyframes particleRise {
+      0% { opacity: 0; transform: translateY(8px) scale(0.6); }
+      25% { opacity: 1; transform: translateY(-4px) scale(1.05); }
+      100% { opacity: 0; transform: translateY(-34px) scale(0.9); }
+    }
+    .pet-body-float {
+      animation: petFloat 3.2s ease-in-out infinite;
+      transform-origin: center bottom;
+    }
+    .pet-body-squish {
+      animation: petSquish 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transform-origin: center bottom;
+    }
+    .pet-body-chomp {
+      animation: petChomp 0.65s ease-in-out 2;
+      transform-origin: center bottom;
+    }
+    .pet-eye-blink {
+      animation: petBlink 4.2s ease-in-out infinite;
+      transform-box: fill-box;
+      transform-origin: center;
+    }
+    .pet-particle {
+      animation: particleRise 1.1s ease-out forwards;
+      pointer-events: none;
+    }
+    .tama-lcd {
+      background:
+        radial-gradient(circle at 50% 35%, rgba(217, 155, 82, 0.14), transparent 68%),
+        linear-gradient(180deg, rgba(20, 24, 28, 0.95) 0%, rgba(14, 17, 20, 0.98) 100%);
+      box-shadow: inset 0 2px 14px rgba(0, 0, 0, 0.55);
+    }
+    body.theme-sepia .tama-lcd,
+    body.theme-light .tama-lcd {
+      background:
+        radial-gradient(circle at 50% 35%, rgba(217, 155, 82, 0.2), transparent 68%),
+        linear-gradient(180deg, #e7dec5 0%, #dcd0b1 100%);
+      box-shadow: inset 0 2px 10px rgba(59, 47, 33, 0.16);
+    }
   </style>
 </head>
 <body class="theme-dark min-h-screen flex flex-col selection:bg-amber-500/30">
@@ -279,6 +342,55 @@
       <div class="bg-surface border border-subtle rounded-2xl p-3.5 sm:p-4">
         <p class="text-[11px] sm:text-xs text-muted uppercase tracking-wider font-medium">Saved Books</p>
         <p id="stat-books" class="text-lg sm:text-2xl font-bold text-main mt-1">0</p>
+      </div>
+    </section>
+
+    <!-- Cute AI Tamagotchi Study Buddy Card -->
+    <section id="lib-pet-card" class="bg-surface border border-subtle rounded-3xl p-4 sm:p-5 mb-6 relative overflow-hidden">
+      <div class="flex items-center gap-4">
+        <!-- Animated Mini Habitat -->
+        <button id="lib-pet-avatar-btn" type="button" class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl tama-lcd border border-subtle flex items-center justify-center shrink-0 relative active:scale-95 transition" title="Tap to open Mochi Tamagotchi">
+          <div id="lib-pet-svg" class="w-16 h-16 sm:w-20 sm:h-20"></div>
+          <span id="lib-pet-lv-pill" class="absolute -bottom-1.5 px-2 py-0.5 rounded-full bg-accent text-zinc-950 text-[10px] font-bold shadow">Lv 1</span>
+        </button>
+
+        <!-- Info, Speech Bubble & Quick Actions -->
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center justify-between gap-2 mb-1">
+            <div class="flex items-center gap-1.5 min-w-0">
+              <h2 id="lib-pet-name" class="text-sm sm:text-base font-bold text-main truncate">Mochi</h2>
+              <span id="lib-pet-stage-label" class="px-2 py-0.5 rounded-full bg-accent-soft text-accent text-[10px] font-semibold shrink-0">Sprout</span>
+            </div>
+            <span id="lib-pet-treats" class="text-[11px] font-semibold text-accent shrink-0">🍡 5</span>
+          </div>
+
+          <p id="lib-pet-speech" class="text-xs text-muted leading-snug line-clamp-2 mb-2.5">
+            "Ready to study together? Reading &amp; 20s eye breaks help me grow!"
+          </p>
+
+          <!-- Compact Stat Bars -->
+          <div class="grid grid-cols-3 gap-2 mb-3">
+            <div>
+              <div class="flex justify-between text-[10px] text-muted mb-0.5"><span>Belly</span><span id="lib-pet-hunger-txt">85%</span></div>
+              <div class="h-1.5 rounded-full bg-elevated overflow-hidden"><div id="lib-pet-hunger-bar" class="h-full bg-amber-400 rounded-full transition-all duration-300" style="width: 85%;"></div></div>
+            </div>
+            <div>
+              <div class="flex justify-between text-[10px] text-muted mb-0.5"><span>Mood</span><span id="lib-pet-happy-txt">90%</span></div>
+              <div class="h-1.5 rounded-full bg-elevated overflow-hidden"><div id="lib-pet-happy-bar" class="h-full bg-pink-400 rounded-full transition-all duration-300" style="width: 90%;"></div></div>
+            </div>
+            <div>
+              <div class="flex justify-between text-[10px] text-muted mb-0.5"><span>Eyes</span><span id="lib-pet-energy-txt">90%</span></div>
+              <div class="h-1.5 rounded-full bg-elevated overflow-hidden"><div id="lib-pet-energy-bar" class="h-full bg-emerald-400 rounded-full transition-all duration-300" style="width: 90%;"></div></div>
+            </div>
+          </div>
+
+          <!-- Quick Buttons -->
+          <div class="flex flex-wrap items-center gap-1.5">
+            <button id="lib-pet-feed-btn" type="button" class="px-2.5 py-1.5 rounded-xl bg-elevated hover:opacity-90 text-main text-[11px] font-medium active:scale-95 transition">🍡 Feed</button>
+            <button id="lib-pet-pat-btn" type="button" class="px-2.5 py-1.5 rounded-xl bg-elevated hover:opacity-90 text-main text-[11px] font-medium active:scale-95 transition">💖 Pet</button>
+            <button id="lib-pet-open-btn" type="button" class="px-3 py-1.5 rounded-xl bg-accent-soft text-accent text-[11px] font-semibold active:scale-95 transition ml-auto">Open Pocket Pet →</button>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -376,6 +488,12 @@
           </svg>
         </button>
 
+        <!-- Cute AI Tamagotchi Pocket Button -->
+        <button id="reader-pet-btn" type="button" class="p-2 rounded-xl hover:bg-elevated text-main active:scale-95 transition relative" title="Open Study Tamagotchi" aria-label="Study Tamagotchi">
+          <div id="reader-pet-mini-icon" class="w-5 h-5 flex items-center justify-center"></div>
+          <span id="reader-pet-alert-dot" class="hidden absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-pink-400"></span>
+        </button>
+
         <!-- Eye Protection & Display Settings -->
         <button id="reader-settings-btn" type="button" class="p-2.5 rounded-xl hover:bg-elevated text-main active:scale-95 transition" title="Eye Protection & Display Settings" aria-label="Display Settings">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -424,24 +542,10 @@
       <span>• Menu</span>
     </button>
 
-    <!-- BOTTOM HUD NAVIGATION BAR -->
-    <footer class="hud-bottom fixed bottom-0 left-0 right-0 z-30 bg-surface/95 backdrop-blur-md border-t border-subtle px-3 sm:px-5 py-2.5">
-      <div class="max-w-3xl mx-auto flex flex-col gap-2">
-        <!-- Progress Slider -->
-        <div class="flex items-center gap-3">
-          <span id="page-current-badge" class="text-xs font-medium text-muted tabular-nums min-w-[2.5rem] text-right">1</span>
-          <input type="range" id="page-slider" min="1" max="1" value="1" class="flex-1" aria-label="Jump to page" />
-          <span id="page-total-badge" class="text-xs font-medium text-muted tabular-nums min-w-[2.5rem]">1</span>
-        </div>
-
-        <!-- Controls Row -->
-        <div class="flex items-center justify-between gap-1.5 sm:gap-2">
-          <button id="prev-page-btn" type="button" class="px-3 sm:px-4 py-2.5 rounded-xl bg-elevated text-main font-medium text-xs sm:text-sm flex items-center gap-1 active:scale-95 transition disabled:opacity-40">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
-            <span>Prev</span>
-          </button>
+    <!-- Optional Floating Mini-Tamagotchi Bubble in Reader (Toggleable) -->
+    <button id="floating-pet-buddy" type="button" class="hidden fixed bottom-24 left-3 z-30 w-13 h-13 p-1.5 rounded-full bg-surface/90 backdrop-blur border border-amber-500/30 shadow-lg active:scale-95 transition flex items-center justify-center" title="Tap Mochi!">
+      <div id="floating-pet-svg" class="w-10 h-10"></div>
+    </button>
 
           <!-- Center Quick Tools: TTS Listen + Go To + Zoom (- / 100% / +) + Hidden AI Chat -->
           <div class="flex items-center gap-1 sm:gap-1.5">
@@ -482,322 +586,19 @@
   </div>
 
   <!-- ===================================================================== -->
-  <!-- MODAL 1: EYE PROTECTION & DISPLAY SETTINGS SHEET                      -->
+  <!-- MODAL 8: CUTE AI-POWERED TAMAGOTCHI POCKET COMPANION                  -->
   <!-- ===================================================================== -->
-  <div id="settings-modal" class="hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
-    <div class="bg-surface border border-subtle w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
-      <div class="flex items-center justify-between mb-5">
-        <h3 class="text-base font-bold text-main flex items-center gap-2">
-          <span class="w-2.5 h-2.5 rounded-full bg-accent"></span>
-          Eye Protection &amp; Theme
-        </h3>
-        <button id="close-settings-btn" type="button" class="p-2 rounded-xl hover:bg-elevated text-muted">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-
-      <!-- Theme Selector -->
-      <div class="mb-5">
-        <label class="text-xs font-semibold uppercase tracking-wider text-muted block mb-2.5">Reading Theme</label>
-        <div class="grid grid-cols-4 gap-2">
-          <button type="button" data-theme="dark" class="theme-option p-2.5 rounded-xl border-2 text-center transition">
-            <span class="block w-6 h-6 mx-auto rounded-full bg-[#181a1e] border border-zinc-600 mb-1"></span>
-            <span class="text-xs font-medium">Dark</span>
-          </button>
-          <button type="button" data-theme="midnight" class="theme-option p-2.5 rounded-xl border-2 text-center transition">
-            <span class="block w-6 h-6 mx-auto rounded-full bg-black border border-zinc-700 mb-1"></span>
-            <span class="text-xs font-medium">OLED</span>
-          </button>
-          <button type="button" data-theme="sepia" class="theme-option p-2.5 rounded-xl border-2 text-center transition">
-            <span class="block w-6 h-6 mx-auto rounded-full bg-[#efe3c8] border border-amber-700/40 mb-1"></span>
-            <span class="text-xs font-medium">Sepia</span>
-          </button>
-          <button type="button" data-theme="light" class="theme-option p-2.5 rounded-xl border-2 text-center transition">
-            <span class="block w-6 h-6 mx-auto rounded-full bg-[#f7f7f5] border border-zinc-300 mb-1"></span>
-            <span class="text-xs font-medium">Paper</span>
-          </button>
+  <div id="pet-modal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-surface border border-subtle w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden max-h-[92vh] flex flex-col">
+      <!-- Pocket Shell Header -->
+      <div class="px-5 py-3.5 border-b border-subtle flex items-center justify-between gap-2 shrink-0">
+        <div class="flex items-center gap-2 min-w-0">
+          <input id="pet-name-input" type="text" maxlength="16" value="Mochi" aria-label="Pet Name" class="bg-transparent text-sm sm:text-base font-bold text-main outline-none border-b border-transparent focus:border-amber-500 w-28 truncate" title="Tap to rename your pet" />
+          <span id="pet-modal-level" class="px-2 py-0.5 rounded-full bg-accent-soft text-accent text-[11px] font-bold shrink-0">Lv 1 • Sprout</span>
         </div>
-      </div>
-
-      <!-- Blue-Light Warmth Slider -->
-      <div class="mb-5">
-        <div class="flex justify-between text-xs mb-2">
-          <span class="font-medium text-main">Warm Blue-Light Filter</span>
-          <span id="warmth-val" class="text-accent font-semibold">20%</span>
-        </div>
-        <input type="range" id="warmth-slider" min="0" max="60" value="20" class="w-full" />
-        <p class="text-[11px] text-muted mt-1">Softens harsh blue glare for late-night reading before sleep.</p>
-      </div>
-
-      <!-- Extra Dim Slider -->
-      <div class="mb-5">
-        <div class="flex justify-between text-xs mb-2">
-          <span class="font-medium text-main">Extra Dim (Night Brightness)</span>
-          <span id="dimmer-val" class="text-accent font-semibold">0%</span>
-        </div>
-        <input type="range" id="dimmer-slider" min="0" max="65" value="0" class="w-full" />
-        <p class="text-[11px] text-muted mt-1">Lowers screen brightness even further than phone minimum.</p>
-      </div>
-
-      <!-- Reflow Text Font Size & Spacing -->
-      <div class="mb-5 pt-4 border-t border-subtle">
-        <div class="flex justify-between text-xs mb-2">
-          <span class="font-medium text-main">Text Mode Font Size</span>
-          <span id="font-size-val" class="text-accent font-semibold">18px</span>
-        </div>
-        <input type="range" id="font-size-slider" min="14" max="28" value="18" class="w-full" />
-
-        <div class="flex justify-between text-xs mt-4 mb-2">
-          <span class="font-medium text-main">Line Spacing</span>
-          <span id="line-height-val" class="text-accent font-semibold">1.8</span>
-        </div>
-        <input type="range" id="line-height-slider" min="1.4" max="2.4" step="0.1" value="1.8" class="w-full" />
-      </div>
-
-      <!-- Gesture Option: Two-Finger Pinch to Zoom -->
-      <div class="flex items-center justify-between py-3 mb-4 border-t border-subtle">
-        <div>
-          <span class="text-xs font-medium text-main block">Two-Finger Pinch Zoom</span>
-          <span class="text-[11px] text-muted">Pinch in/out to zoom PDF or resize text</span>
-        </div>
-        <button id="pinch-zoom-toggle-btn" type="button" class="px-3 py-1.5 rounded-lg bg-accent-soft text-accent text-xs font-semibold active:scale-95 transition">
-          ON
-        </button>
-      </div>
-
-      <button id="done-settings-btn" type="button" class="w-full py-3 rounded-xl bg-accent text-zinc-950 font-semibold text-sm active:scale-95 transition">
-        Done
-      </button>
-
-      <!-- Ultra-subtle, barely-visible micro-setting trigger tucked at the bottom -->
-      <div class="mt-3 flex items-center justify-between px-1">
-        <span class="text-[10px] text-muted/30 select-none">EyeSafe local</span>
-        <button id="secret-ai-settings-btn" type="button" class="text-[10px] text-muted/30 hover:text-muted/75 px-2 py-1 rounded transition select-none" title="Advanced">
-          · · ·
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ===================================================================== -->
-  <!-- MODAL 2: 20-20-20 EYE CARE TIMER SETTINGS                             -->
-  <!-- ===================================================================== -->
-  <div id="timer-modal" class="hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
-    <div class="bg-surface border border-subtle w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-base font-bold text-main">20-20-20 Eye Care Timer</h3>
-        <button id="close-timer-btn" type="button" class="p-2 rounded-xl hover:bg-elevated text-muted">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-
-      <div class="text-center bg-elevated rounded-2xl p-5 mb-4">
-        <p class="text-xs text-muted uppercase tracking-wider">Next 20-Second Eye Rest In</p>
-        <p id="modal-timer-readout" class="text-4xl font-bold text-accent tabular-nums mt-1">20:00</p>
-      </div>
-
-      <!-- Interval Picker -->
-      <div class="flex items-center justify-between mb-4">
-        <span class="text-xs font-medium text-muted">Break Interval</span>
-        <div class="flex items-center gap-1.5">
-          <button type="button" data-interval="10" class="interval-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-elevated text-main">10m</button>
-          <button type="button" data-interval="15" class="interval-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-elevated text-main">15m</button>
-          <button type="button" data-interval="20" class="interval-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-accent text-zinc-950">20m</button>
-          <button type="button" data-interval="30" class="interval-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-elevated text-main">30m</button>
-        </div>
-      </div>
-
-      <!-- Action Buttons -->
-      <div class="grid grid-cols-2 gap-2.5 mb-3">
-        <button id="toggle-timer-pause-btn" type="button" class="py-2.5 rounded-xl bg-elevated text-main font-medium text-xs sm:text-sm active:scale-95 transition">
-          Pause Timer
-        </button>
-        <button id="reset-timer-btn" type="button" class="py-2.5 rounded-xl bg-elevated text-main font-medium text-xs sm:text-sm active:scale-95 transition">
-          Reset Timer
-        </button>
-      </div>
-
-      <div class="flex items-center gap-2.5">
-        <button id="sound-toggle-btn" type="button" class="px-3.5 py-2.5 rounded-xl bg-elevated text-muted text-xs font-medium active:scale-95 transition">
-          Sound: ON
-        </button>
-        <button id="test-rest-btn" type="button" class="flex-1 py-2.5 rounded-xl bg-accent text-zinc-950 font-semibold text-xs sm:text-sm active:scale-95 transition">
-          Take 20s Break Now
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ===================================================================== -->
-  <!-- MODAL 3: 20-SECOND EYE REST OVERLAY                                   -->
-  <!-- ===================================================================== -->
-  <div id="eye-rest-overlay" class="hidden fixed inset-0 z-50 bg-zinc-950/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center">
-    <div class="relative w-36 h-36 flex items-center justify-center mb-6">
-      <div class="absolute inset-0 rounded-full bg-amber-500/15 animate-breathe"></div>
-      <svg class="w-32 h-32 -rotate-90" viewBox="0 0 120 120">
-        <circle cx="60" cy="60" r="52" stroke="rgba(255,255,255,0.1)" stroke-width="6" fill="none" />
-        <circle id="rest-progress-ring" cx="60" cy="60" r="52" stroke="#d99b52" stroke-width="6" stroke-linecap="round" fill="none" stroke-dasharray="326.72" stroke-dashoffset="0" style="transition: stroke-dashoffset 0.9s linear;" />
-      </svg>
-      <span id="rest-countdown-num" class="absolute text-4xl font-bold text-amber-300 tabular-nums">20</span>
-    </div>
-
-    <h2 id="rest-title" class="text-2xl font-bold text-zinc-100 mb-2">Rest Your Eyes</h2>
-    <p id="rest-instruction" class="text-sm text-zinc-300 max-w-md leading-relaxed mb-8">
-      Look away from the screen at a wall or object about <strong class="text-amber-300">20 feet away</strong>. Blink slowly 5 times and relax your shoulders.
-    </p>
-
-    <button id="continue-reading-btn" type="button" disabled class="w-full max-w-xs py-3.5 rounded-2xl bg-amber-500 text-zinc-950 font-semibold text-sm transition disabled:opacity-40 disabled:cursor-not-allowed active:scale-95">
-      Wait 20 seconds...
-    </button>
-
-    <button id="skip-rest-btn" type="button" class="mt-4 text-xs text-zinc-500 hover:text-zinc-300 py-2 px-4 transition">
-      Skip rest early
-    </button>
-  </div>
-
-  <!-- ===================================================================== -->
-  <!-- MODAL 4: JUMP TO PAGE & BOOKMARKS                                     -->
-  <!-- ===================================================================== -->
-  <div id="jump-modal" class="hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
-    <div class="bg-surface border border-subtle w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl max-h-[80vh] flex flex-col">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-base font-bold text-main">Go To Page &amp; Bookmarks</h3>
-        <button id="close-jump-btn" type="button" class="p-2 rounded-xl hover:bg-elevated text-muted">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-
-      <form id="jump-page-form" class="flex gap-2 mb-5">
-        <input type="number" id="jump-page-input" min="1" placeholder="Page number..." class="flex-1 px-4 py-2.5 rounded-xl bg-elevated border border-subtle text-main text-sm outline-none focus:border-amber-500" />
-        <button type="submit" class="px-5 py-2.5 rounded-xl bg-accent text-zinc-950 font-semibold text-sm active:scale-95 transition">
-          Go
-        </button>
-      </form>
-
-      <h4 class="text-xs font-semibold uppercase tracking-wider text-muted mb-2">Saved Bookmarks</h4>
-      <div id="bookmarks-list" class="overflow-y-auto space-y-2 flex-1">
-        <!-- Populated dynamically -->
-      </div>
-    </div>
-  </div>
-
-  <!-- ===================================================================== -->
-  <!-- MODAL 5: CUSTOM CONFIRM DIALOG                                        -->
-  <!-- ===================================================================== -->
-  <div id="confirm-modal" class="hidden fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-surface border border-subtle w-full max-w-xs rounded-3xl p-5 shadow-2xl">
-      <h3 id="confirm-title" class="text-base font-bold text-main mb-1.5">Confirm</h3>
-      <p id="confirm-msg" class="text-xs sm:text-sm text-muted mb-5 leading-relaxed">Are you sure?</p>
-      <div class="flex gap-2.5">
-        <button id="confirm-cancel-btn" type="button" class="flex-1 py-2.5 rounded-xl bg-elevated text-main font-medium text-sm active:scale-95 transition">
-          Cancel
-        </button>
-        <button id="confirm-ok-btn" type="button" class="flex-1 py-2.5 rounded-xl bg-red-500/90 text-white font-semibold text-sm active:scale-95 transition">
-          Remove
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ===================================================================== -->
-  <!-- MODAL 6: DISCREET CUSTOM AI CONFIGURATION                             -->
-  <!-- ===================================================================== -->
-  <div id="ai-config-modal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
-    <div class="bg-surface border border-subtle w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-sm font-bold text-main">Custom AI Page Companion</h3>
-        <button id="close-ai-config-btn" type="button" class="p-2 rounded-xl hover:bg-elevated text-muted">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-
-      <!-- Enable / Hide Toggle -->
-      <div class="flex items-center justify-between p-3 rounded-2xl bg-elevated mb-4">
-        <div>
-          <p class="text-xs font-semibold text-main">Show Chat Button in Reader</p>
-          <p class="text-[11px] text-muted">Keep OFF to hide AI completely from the UI</p>
-        </div>
-        <button id="ai-enable-toggle-btn" type="button" class="px-3 py-1.5 rounded-lg bg-surface border border-subtle text-xs font-semibold text-muted active:scale-95 transition">
-          OFF
-        </button>
-      </div>
-
-      <!-- Provider Type -->
-      <div class="mb-3.5">
-        <label class="text-[11px] font-semibold uppercase tracking-wider text-muted block mb-1.5">API Mode</label>
-        <div class="grid grid-cols-2 gap-2">
-          <button type="button" data-provider="custom" class="ai-provider-btn py-2 px-3 rounded-xl border text-xs font-semibold transition">
-            Custom / OpenAI API
-          </button>
-          <button type="button" data-provider="gemini" class="ai-provider-btn py-2 px-3 rounded-xl border text-xs font-semibold transition">
-            Gemini API
-          </button>
-        </div>
-      </div>
-
-      <!-- Custom Endpoint (only shown for Custom / OpenAI-compatible API) -->
-      <div id="ai-endpoint-group" class="mb-3.5">
-        <label for="ai-endpoint-input" class="text-[11px] font-medium text-muted block mb-1">Endpoint URL (OpenAI, OpenRouter, Groq, Ollama...)</label>
-        <input type="url" id="ai-endpoint-input" placeholder="https://api.openai.com/v1/chat/completions" class="w-full px-3.5 py-2.5 rounded-xl bg-elevated border border-subtle text-main text-xs outline-none focus:border-amber-500" />
-      </div>
-
-      <!-- Model Name -->
-      <div class="mb-3.5">
-        <label for="ai-model-input" class="text-[11px] font-medium text-muted block mb-1">Model Name</label>
-        <input type="text" id="ai-model-input" placeholder="gpt-4o-mini" class="w-full px-3.5 py-2.5 rounded-xl bg-elevated border border-subtle text-main text-xs outline-none focus:border-amber-500" />
-      </div>
-
-      <!-- API Key -->
-      <div class="mb-3.5">
-        <label for="ai-key-input" class="text-[11px] font-medium text-muted block mb-1">API Key <span id="ai-key-hint" class="text-muted/70">(stored only on this device)</span></label>
-        <input type="password" id="ai-key-input" placeholder="sk-... or your Gemini API key" autocomplete="off" class="w-full px-3.5 py-2.5 rounded-xl bg-elevated border border-subtle text-main text-xs outline-none focus:border-amber-500" />
-      </div>
-
-      <!-- System Prompt -->
-      <div class="mb-4">
-        <label for="ai-system-input" class="text-[11px] font-medium text-muted block mb-1">Assistant Instructions</label>
-        <textarea id="ai-system-input" rows="2" class="w-full px-3.5 py-2 rounded-xl bg-elevated border border-subtle text-main text-xs outline-none focus:border-amber-500 resize-none"></textarea>
-      </div>
-
-      <div class="flex gap-2">
-        <button id="save-ai-config-btn" type="button" class="flex-1 py-2.5 rounded-xl bg-accent text-zinc-950 font-semibold text-xs sm:text-sm active:scale-95 transition">
-          Save Settings
-        </button>
-        <button id="open-chat-from-config-btn" type="button" class="px-4 py-2.5 rounded-xl bg-elevated border border-subtle text-main font-medium text-xs sm:text-sm active:scale-95 transition">
-          Open Chat
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ===================================================================== -->
-  <!-- MODAL 7: PAGE-CONTEXT AI CHAT DRAWER                                  -->
-  <!-- ===================================================================== -->
-  <div id="ai-chat-modal" class="hidden fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
-    <div class="bg-surface border border-subtle w-full sm:max-w-lg h-[82vh] sm:h-[75vh] rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden">
-      <!-- Chat Header -->
-      <div class="px-4 py-3 border-b border-subtle flex items-center justify-between gap-2 shrink-0">
-        <div class="min-w-0">
-          <h3 class="text-sm font-bold text-main truncate">Page Context Chat</h3>
-          <p id="ai-context-status" class="text-[11px] text-accent truncate">Reading current page context...</p>
-        </div>
-        <div class="flex items-center gap-1 shrink-0">
-          <button id="ai-clear-chat-btn" type="button" class="p-2 rounded-xl hover:bg-elevated text-muted text-xs" title="Clear chat history">Clear</button>
-          <button id="ai-chat-gear-btn" type="button" class="p-2 rounded-xl hover:bg-elevated text-muted" title="AI Settings">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          </button>
-          <button id="close-ai-chat-btn" type="button" class="p-2 rounded-xl hover:bg-elevated text-muted">
+        <div class="flex items-center gap-1.5 shrink-0">
+          <span id="pet-modal-treats" class="px-2.5 py-1 rounded-full bg-elevated text-accent text-xs font-semibold">🍡 5</span>
+          <button id="close-pet-modal-btn" type="button" class="p-2 rounded-xl hover:bg-elevated text-muted">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -805,26 +606,98 @@
         </div>
       </div>
 
-      <!-- Quick Prompt Chips -->
-      <div class="px-4 py-2 border-b border-subtle flex items-center gap-1.5 overflow-x-auto shrink-0">
-        <button type="button" data-prompt="Explain this page in simple words." class="ai-quick-chip px-3 py-1.5 rounded-full bg-elevated text-main text-[11px] font-medium whitespace-nowrap active:scale-95 transition">Explain simply</button>
-        <button type="button" data-prompt="Define any hard or unfamiliar words on this page." class="ai-quick-chip px-3 py-1.5 rounded-full bg-elevated text-main text-[11px] font-medium whitespace-nowrap active:scale-95 transition">Hard words</button>
-        <button type="button" data-prompt="Summarize the key points from this page in 3 bullet points." class="ai-quick-chip px-3 py-1.5 rounded-full bg-elevated text-main text-[11px] font-medium whitespace-nowrap active:scale-95 transition">Key points</button>
-        <button type="button" data-prompt="Ask me 2 quick practice questions based on this page." class="ai-quick-chip px-3 py-1.5 rounded-full bg-elevated text-main text-[11px] font-medium whitespace-nowrap active:scale-95 transition">Quiz me</button>
-      </div>
+      <!-- Scrollable Pocket Content -->
+      <div class="p-4 sm:p-5 overflow-y-auto space-y-4">
+        <!-- Cozy LCD Tamagotchi Habitat Screen -->
+        <div class="tama-lcd rounded-3xl border border-subtle p-4 relative overflow-hidden">
+          <!-- Ambient Top Bar inside LCD -->
+          <div class="flex items-center justify-between text-[10px] text-muted mb-1">
+            <span id="pet-sky-label">🌙 Cozy Study Mode</span>
+            <span id="pet-xp-label" class="tabular-nums text-accent font-semibold">XP 0 / 50</span>
+          </div>
 
-      <!-- Messages Feed -->
-      <div id="ai-chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3 text-xs sm:text-sm">
-        <!-- Populated dynamically -->
-      </div>
+          <!-- Interactive Pet Stage (Tap directly to pet & squish!) -->
+          <div id="pet-stage-click" class="h-36 sm:h-40 flex items-center justify-center relative cursor-pointer select-none">
+            <!-- Particle Layer for Floating Hearts / Sparkles / Snacks -->
+            <div id="pet-particles-layer" class="absolute inset-0 pointer-events-none overflow-hidden"></div>
+            <div id="pet-main-svg" class="w-32 h-32 sm:w-36 sm:h-36"></div>
+          </div>
 
-      <!-- Chat Input Bar -->
-      <form id="ai-chat-form" class="p-3 border-t border-subtle flex items-center gap-2 shrink-0 bg-surface">
-        <input type="text" id="ai-chat-input" placeholder="Ask about this page..." class="flex-1 px-4 py-2.5 rounded-xl bg-elevated border border-subtle text-main text-xs sm:text-sm outline-none focus:border-amber-500" />
-        <button id="ai-send-btn" type="submit" class="px-4 py-2.5 rounded-xl bg-accent text-zinc-950 font-semibold text-xs sm:text-sm active:scale-95 transition disabled:opacity-40">
-          Send
-        </button>
-      </form>
+          <!-- Live AI Speech Bubble -->
+          <div class="mt-1 bg-surface/90 backdrop-blur border border-subtle rounded-2xl px-3.5 py-2.5 relative">
+            <p id="pet-modal-speech" class="text-xs sm:text-sm text-main leading-relaxed">
+              "Hi friend! Tap me for squishes, feed me focus snacks, or chat with me about what you're studying!"
+            </p>
+            <div class="mt-1.5 flex items-center justify-between text-[10px] text-muted">
+              <span id="pet-ai-badge">✨ AI Study Brain</span>
+              <span id="pet-mood-tag" class="text-accent font-medium">Mood: Cozy</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3 Tamagotchi Vital Meters + XP Bar -->
+        <div class="grid grid-cols-3 gap-2.5 bg-elevated/60 border border-subtle rounded-2xl p-3">
+          <div>
+            <div class="flex justify-between text-[11px] mb-1"><span class="text-muted">Belly</span><span id="pet-stat-hunger" class="font-semibold text-main tabular-nums">85%</span></div>
+            <div class="h-2 rounded-full bg-surface overflow-hidden"><div id="pet-bar-hunger" class="h-full bg-amber-400 rounded-full transition-all duration-300" style="width: 85%;"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between text-[11px] mb-1"><span class="text-muted">Mood</span><span id="pet-stat-happy" class="font-semibold text-main tabular-nums">90%</span></div>
+            <div class="h-2 rounded-full bg-surface overflow-hidden"><div id="pet-bar-happy" class="h-full bg-pink-400 rounded-full transition-all duration-300" style="width: 90%;"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between text-[11px] mb-1"><span class="text-muted">Eyes</span><span id="pet-stat-energy" class="font-semibold text-main tabular-nums">90%</span></div>
+            <div class="h-2 rounded-full bg-surface overflow-hidden"><div id="pet-bar-energy" class="h-full bg-emerald-400 rounded-full transition-all duration-300" style="width: 90%;"></div></div>
+          </div>
+          <div class="col-span-3 pt-1">
+            <div class="h-1.5 rounded-full bg-surface overflow-hidden">
+              <div id="pet-bar-xp" class="h-full bg-accent rounded-full transition-all duration-500" style="width: 10%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Classic 4 Tamagotchi Interactive Buttons -->
+        <div class="grid grid-cols-4 gap-2">
+          <button id="pet-btn-feed" type="button" class="py-2.5 px-2 rounded-2xl bg-elevated hover:bg-accent-soft border border-subtle text-center active:scale-95 transition">
+            <span class="block text-lg leading-none mb-1">🍡</span>
+            <span class="text-[11px] font-semibold text-main">Feed</span>
+          </button>
+          <button id="pet-btn-pat" type="button" class="py-2.5 px-2 rounded-2xl bg-elevated hover:bg-accent-soft border border-subtle text-center active:scale-95 transition">
+            <span class="block text-lg leading-none mb-1">💖</span>
+            <span class="text-[11px] font-semibold text-main">Pet</span>
+          </button>
+          <button id="pet-btn-play" type="button" class="py-2.5 px-2 rounded-2xl bg-elevated hover:bg-accent-soft border border-subtle text-center active:scale-95 transition">
+            <span class="block text-lg leading-none mb-1">✨</span>
+            <span class="text-[11px] font-semibold text-main">Spark</span>
+          </button>
+          <button id="pet-btn-nap" type="button" class="py-2.5 px-2 rounded-2xl bg-elevated hover:bg-accent-soft border border-subtle text-center active:scale-95 transition">
+            <span class="block text-lg leading-none mb-1">💤</span>
+            <span class="text-[11px] font-semibold text-main">Rest</span>
+          </button>
+        </div>
+
+        <!-- Talk to Your AI Tamagotchi -->
+        <form id="pet-chat-form" class="flex items-center gap-2">
+          <input type="text" id="pet-chat-input" placeholder="Talk to Mochi (motivate me, page tip, chat)..." class="flex-1 px-3.5 py-2.5 rounded-xl bg-elevated border border-subtle text-main text-xs sm:text-sm outline-none focus:border-amber-500" />
+          <button id="pet-chat-send-btn" type="submit" class="px-4 py-2.5 rounded-xl bg-accent text-zinc-950 font-semibold text-xs sm:text-sm active:scale-95 transition disabled:opacity-40 shrink-0">
+            Say
+          </button>
+        </form>
+
+        <!-- Cozy Customization Row (Color + Floating Reader Buddy Toggle) -->
+        <div class="flex items-center justify-between gap-2 pt-2 border-t border-subtle">
+          <div class="flex items-center gap-1.5">
+            <span class="text-[11px] text-muted mr-1">Color:</span>
+            <button type="button" data-pet-color="cream" class="pet-color-btn w-6 h-6 rounded-full bg-[#f6e7cb] border-2 border-amber-500 transition" title="Warm Cream"></button>
+            <button type="button" data-pet-color="peach" class="pet-color-btn w-6 h-6 rounded-full bg-[#f7c8b8] border-2 border-transparent transition" title="Peach Mochi"></button>
+            <button type="button" data-pet-color="matcha" class="pet-color-btn w-6 h-6 rounded-full bg-[#cde5c4] border-2 border-transparent transition" title="Matcha Mint"></button>
+            <button type="button" data-pet-color="lavender" class="pet-color-btn w-6 h-6 rounded-full bg-[#d8ccf2] border-2 border-transparent transition" title="Lavender Mist"></button>
+          </div>
+          <button id="pet-float-toggle-btn" type="button" class="px-2.5 py-1 rounded-lg bg-elevated border border-subtle text-[11px] font-medium text-muted active:scale-95 transition">
+            Float in Reader: OFF
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -948,20 +821,21 @@
       let aiChatHistory = [];
       let cachedPageContext = { bookId: null, page: null, text: '' };
       let aiRequestInFlight = false;
+      let selectedQuizMode = 'mcq'; // 'mcq' | 'subjective' | 'mixed'
+      let selectedQuizCount = 3;    // 3 | 5
 
       // Custom confirm callback
       let confirmCallback = null;
-
-      // Zoom badge timer
+      let toastTimeout = null;
       let zoomBadgeTimeout = null;
 
       /* -------------------------------------------------------------------
-         3. LOCAL STORAGE HELPERS (Settings & Daily Stats)
+         3. LOCAL PREFERENCES, STATS & CORE UTILITIES
          ------------------------------------------------------------------- */
       function loadPrefs() {
         try {
-          const saved = JSON.parse(localStorage.getItem('eyesafe_prefs_v1'));
-          return { ...DEFAULT_PREFS, ...(saved || {}) };
+          const raw = localStorage.getItem('eyesafe_prefs_v1');
+          return raw ? { ...DEFAULT_PREFS, ...JSON.parse(raw) } : { ...DEFAULT_PREFS };
         } catch (e) {
           return { ...DEFAULT_PREFS };
         }
@@ -970,22 +844,21 @@
       function savePrefs() {
         try {
           localStorage.setItem('eyesafe_prefs_v1', JSON.stringify(prefs));
-        } catch (e) {
-          console.warn('Could not save preferences:', e);
-        }
+        } catch (e) {}
       }
 
       function getTodayKey() {
         const d = new Date();
-        return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       }
 
       function loadStats() {
         const today = getTodayKey();
         try {
-          const saved = JSON.parse(localStorage.getItem('eyesafe_stats_v1'));
-          if (saved && saved.date === today) {
-            return saved;
+          const raw = localStorage.getItem('eyesafe_stats_v1');
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed.date === today) return parsed;
           }
         } catch (e) {}
         return { date: today, minutesRead: 0, breaksTaken: 0 };
@@ -1001,8 +874,8 @@
       function updateStatsUI() {
         const minEl = document.getElementById('stat-minutes');
         const brkEl = document.getElementById('stat-breaks');
-        if (minEl) minEl.textContent = `${stats.minutesRead} min`;
-        if (brkEl) brkEl.textContent = `${stats.breaksTaken}`;
+        if (minEl) minEl.textContent = `${stats.minutesRead || 0} min`;
+        if (brkEl) brkEl.textContent = `${stats.breaksTaken || 0}`;
       }
 
       function escapeHTML(str) {
@@ -1015,135 +888,70 @@
       }
 
       function formatBytes(bytes) {
-        if (!bytes || bytes <= 0) return '0 KB';
+        if (!bytes || bytes <= 0) return 'Sample';
         const kb = bytes / 1024;
-        if (kb < 1024) return `${kb.toFixed(0)} KB`;
+        if (kb < 1024) return `${Math.round(kb)} KB`;
         return `${(kb / 1024).toFixed(1)} MB`;
       }
 
-      /* -------------------------------------------------------------------
-         4. INDEXEDDB STORAGE FOR LOCAL PDF BOOKS
-         ------------------------------------------------------------------- */
-      function initDB() {
-        return new Promise((resolve, reject) => {
-          try {
-            const request = indexedDB.open('EyeSafeReaderDB', 1);
-            request.onupgradeneeded = (event) => {
-              const database = event.target.result;
-              if (!database.objectStoreNames.contains('books')) {
-                database.createObjectStore('books', { keyPath: 'id' });
-              }
-            };
-            request.onsuccess = (event) => {
-              db = event.target.result;
-              resolve(db);
-            };
-            request.onerror = (event) => reject(event.target.error);
-          } catch (err) {
-            reject(err);
-          }
-        });
-      }
-
-      function dbGetAllBooks() {
-        return new Promise((resolve, reject) => {
-          if (!db) return resolve([]);
-          const tx = db.transaction('books', 'readonly');
-          const store = tx.objectStore('books');
-          const req = store.getAll();
-          req.onsuccess = () => resolve(req.result || []);
-          req.onerror = () => reject(req.error);
-        });
-      }
-
-      function dbSaveBook(bookRecord) {
-        return new Promise((resolve, reject) => {
-          if (!db) return reject(new Error('Storage unavailable'));
-          const tx = db.transaction('books', 'readwrite');
-          const store = tx.objectStore('books');
-          const req = store.put(bookRecord);
-          req.onsuccess = () => resolve();
-          req.onerror = () => reject(req.error);
-        });
-      }
-
-      function dbDeleteBook(id) {
-        return new Promise((resolve, reject) => {
-          if (!db) return resolve();
-          const tx = db.transaction('books', 'readwrite');
-          const store = tx.objectStore('books');
-          const req = store.delete(id);
-          req.onsuccess = () => resolve();
-          req.onerror = () => reject(req.error);
-        });
-      }
-
-      /* -------------------------------------------------------------------
-         5. GENTLE WEB AUDIO CHIME (Zero external audio files)
-         ------------------------------------------------------------------- */
-      function playGentleChime(type = 'start') {
-        if (!prefs.soundEnabled) return;
-        try {
-          const AudioCtx = window.AudioContext || window.webkitAudioContext;
-          if (!AudioCtx) return;
-          const ctx = new AudioCtx();
-
-          const notes = type === 'start' ? [440, 554.37] : [523.25, 659.25];
-          notes.forEach((freq, idx) => {
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.18);
-
-            gain.gain.setValueAtTime(0.001, ctx.currentTime + idx * 0.18);
-            gain.gain.exponentialRampToValueAtTime(0.12, ctx.currentTime + idx * 0.18 + 0.08);
-            gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + idx * 0.18 + 1.1);
-
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.start(ctx.currentTime + idx * 0.18);
-            osc.stop(ctx.currentTime + idx * 0.18 + 1.15);
-          });
-        } catch (e) {}
-      }
-
-      /* -------------------------------------------------------------------
-         6. UI HELPERS (Toast, Zoom Badge, Confirm Modal, Theme Application)
-         ------------------------------------------------------------------- */
-      let toastTimeout = null;
-      function showToast(message) {
+      function showToast(msg) {
         const el = document.getElementById('toast');
-        el.textContent = message;
+        if (!el) return;
+        el.textContent = msg;
         el.classList.remove('opacity-0', '-translate-y-2');
         el.classList.add('opacity-100', 'translate-y-0');
         clearTimeout(toastTimeout);
         toastTimeout = setTimeout(() => {
           el.classList.add('opacity-0', '-translate-y-2');
           el.classList.remove('opacity-100', 'translate-y-0');
-        }, 2600);
+        }, 2500);
       }
 
-      function showZoomBadge(label) {
-        const zoomBadge = document.getElementById('zoom-badge');
-        if (!zoomBadge) return;
-        zoomBadge.textContent = label;
-        zoomBadge.classList.remove('opacity-0');
-        zoomBadge.classList.add('opacity-100');
+      function showZoomBadge(text) {
+        const badge = document.getElementById('zoom-badge');
+        if (!badge) return;
+        badge.textContent = text;
+        badge.classList.remove('opacity-0');
+        badge.classList.add('opacity-100');
         clearTimeout(zoomBadgeTimeout);
         zoomBadgeTimeout = setTimeout(() => {
-          zoomBadge.classList.remove('opacity-100');
-          zoomBadge.classList.add('opacity-0');
-        }, 900);
+          badge.classList.add('opacity-0');
+          badge.classList.remove('opacity-100');
+        }, 1200);
       }
 
       function updateZoomButtonLabel() {
         const btn = document.getElementById('zoom-reset-btn');
         if (!btn) return;
-        if (activeBook && (prefs.viewMode === 'text' || activeBook.isDemo)) {
+        if (prefs.viewMode === 'text' || (activeBook && activeBook.isDemo)) {
           btn.textContent = `${prefs.fontSize}px`;
         } else {
           btn.textContent = `${Math.round(prefs.zoom * 100)}%`;
         }
+      }
+
+      function playGentleChime(type = 'start') {
+        if (!prefs.soundEnabled) return;
+        try {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (!AudioCtx) return;
+          const ctx = new AudioCtx();
+          const now = ctx.currentTime;
+          const notes = type === 'end' ? [523.25, 659.25] : [440, 392];
+          notes.forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now + idx * 0.16);
+            gain.gain.setValueAtTime(0.0001, now + idx * 0.16);
+            gain.gain.exponentialRampToValueAtTime(0.08, now + idx * 0.16 + 0.04);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.16 + 0.45);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now + idx * 0.16);
+            osc.stop(now + idx * 0.16 + 0.48);
+          });
+        } catch (e) {}
       }
 
       function openConfirm(title, message, onConfirm) {
@@ -1154,58 +962,54 @@
       }
 
       function closeConfirm() {
-        document.getElementById('confirm-modal').classList.add('hidden');
         confirmCallback = null;
+        document.getElementById('confirm-modal').classList.add('hidden');
       }
 
+      /* -------------------------------------------------------------------
+         4. EYE PROTECTION & THEME APPLICATION
+         ------------------------------------------------------------------- */
       function applyEyeSettings() {
-        // Apply theme class
         document.body.classList.remove('theme-dark', 'theme-midnight', 'theme-sepia', 'theme-light');
-        document.body.classList.add(`theme-${prefs.theme}`);
+        document.body.classList.add(`theme-${prefs.theme || 'dark'}`);
 
-        // Highlight active theme button
-        document.querySelectorAll('.theme-option').forEach((btn) => {
-          const isActive = btn.dataset.theme === prefs.theme;
-          btn.style.borderColor = isActive ? 'var(--accent)' : 'var(--border-subtle)';
-          btn.style.backgroundColor = isActive ? 'var(--accent-soft)' : 'transparent';
-        });
+        const warmthEl = document.getElementById('warmth-overlay');
+        const dimmerEl = document.getElementById('dimmer-overlay');
+        if (warmthEl) warmthEl.style.opacity = `${(prefs.warmth || 0) / 100}`;
+        if (dimmerEl) dimmerEl.style.opacity = `${(prefs.dimmer || 0) / 100}`;
 
-        // Apply Warm Blue-Light Filter & Extra Dimmer
-        document.getElementById('warmth-overlay').style.opacity = (prefs.warmth / 100).toFixed(2);
-        document.getElementById('dimmer-overlay').style.opacity = (prefs.dimmer / 100).toFixed(2);
+        const wSlider = document.getElementById('warmth-slider');
+        const dSlider = document.getElementById('dimmer-slider');
+        const fSlider = document.getElementById('font-size-slider');
+        const lSlider = document.getElementById('line-height-slider');
+        if (wSlider) wSlider.value = prefs.warmth;
+        if (dSlider) dSlider.value = prefs.dimmer;
+        if (fSlider) fSlider.value = prefs.fontSize;
+        if (lSlider) lSlider.value = prefs.lineHeight;
 
-        // Sync slider labels & values
-        document.getElementById('warmth-slider').value = prefs.warmth;
-        document.getElementById('warmth-val').textContent = `${prefs.warmth}%`;
+        const wVal = document.getElementById('warmth-val');
+        const dVal = document.getElementById('dimmer-val');
+        const fVal = document.getElementById('font-size-val');
+        const lVal = document.getElementById('line-height-val');
+        if (wVal) wVal.textContent = `${prefs.warmth}%`;
+        if (dVal) dVal.textContent = `${prefs.dimmer}%`;
+        if (fVal) fVal.textContent = `${prefs.fontSize}px`;
+        if (lVal) lVal.textContent = `${prefs.lineHeight}`;
 
-        document.getElementById('dimmer-slider').value = prefs.dimmer;
-        document.getElementById('dimmer-val').textContent = `${prefs.dimmer}%`;
-
-        document.getElementById('font-size-slider').value = prefs.fontSize;
-        document.getElementById('font-size-val').textContent = `${prefs.fontSize}px`;
-
-        document.getElementById('line-height-slider').value = prefs.lineHeight;
-        document.getElementById('line-height-val').textContent = `${prefs.lineHeight}`;
-
-        // Apply text styles to Reflow Text View
-        const textBox = document.getElementById('text-reflow-content');
-        textBox.style.fontSize = `${prefs.fontSize}px`;
-        textBox.style.lineHeight = `${prefs.lineHeight}`;
-
-        // Update Sound & Interval buttons
-        const soundBtn = document.getElementById('sound-toggle-btn');
-        if (soundBtn) {
-          soundBtn.textContent = prefs.soundEnabled ? 'Sound: ON' : 'Sound: OFF';
+        const reflow = document.getElementById('text-reflow-wrapper');
+        if (reflow) {
+          reflow.style.fontSize = `${prefs.fontSize}px`;
+          reflow.style.lineHeight = `${prefs.lineHeight}`;
         }
 
-        document.querySelectorAll('.interval-btn').forEach((btn) => {
-          const active = Number(btn.dataset.interval) === prefs.intervalMin;
-          btn.className = active
-            ? 'interval-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-accent text-zinc-950'
-            : 'interval-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-elevated text-main';
+        document.querySelectorAll('.theme-option').forEach((btn) => {
+          const active = btn.dataset.theme === prefs.theme;
+          btn.classList.toggle('border-amber-500', active);
+          btn.classList.toggle('bg-accent-soft', active);
+          btn.classList.toggle('border-transparent', !active);
+          btn.classList.toggle('bg-elevated', !active);
         });
 
-        // Pinch-to-Zoom toggle & stage touch-action
         const pinchBtn = document.getElementById('pinch-zoom-toggle-btn');
         const stage = document.getElementById('reading-stage');
         if (pinchBtn) {
@@ -1218,42 +1022,98 @@
           stage.classList.toggle('pinch-enabled', !!prefs.pinchZoom);
         }
 
-        // Discreet AI chat button visibility (only shown when explicitly enabled)
+        const soundBtn = document.getElementById('sound-toggle-btn');
+        if (soundBtn) soundBtn.textContent = `Sound: ${prefs.soundEnabled ? 'ON' : 'OFF'}`;
+
+        document.querySelectorAll('.interval-btn').forEach((btn) => {
+          const active = Number(btn.dataset.interval) === Number(prefs.intervalMin);
+          btn.className = active
+            ? 'interval-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-accent text-zinc-950'
+            : 'interval-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-elevated text-main';
+        });
+
         const aiBtn = document.getElementById('ai-chat-trigger-btn');
-        if (aiBtn) {
-          aiBtn.classList.toggle('hidden', !prefs.aiEnabled);
-        }
+        if (aiBtn) aiBtn.classList.toggle('hidden', !prefs.aiEnabled);
 
         updateZoomButtonLabel();
       }
 
       /* -------------------------------------------------------------------
-         6B. CUSTOM AI PAGE CONTEXT CHAT HELPERS
+         5. INDEXEDDB LOCAL PDF STORAGE ENGINE
+         ------------------------------------------------------------------- */
+      function initDB() {
+        return new Promise((resolve, reject) => {
+          if (!window.indexedDB) {
+            reject(new Error('IndexedDB unavailable'));
+            return;
+          }
+          const req = indexedDB.open('EyeSafeReaderDB', 1);
+          req.onupgradeneeded = (e) => {
+            const database = e.target.result;
+            if (!database.objectStoreNames.contains('books')) {
+              database.createObjectStore('books', { keyPath: 'id' });
+            }
+          };
+          req.onsuccess = (e) => {
+            db = e.target.result;
+            resolve(db);
+          };
+          req.onerror = (e) => reject(e.target.error);
+        });
+      }
+
+      function dbGetAllBooks() {
+        return new Promise((resolve, reject) => {
+          if (!db) return resolve([]);
+          const tx = db.transaction('books', 'readonly');
+          const req = tx.objectStore('books').getAll();
+          req.onsuccess = () => resolve(req.result || []);
+          req.onerror = (e) => reject(e.target.error);
+        });
+      }
+
+      function dbSaveBook(bookRecord) {
+        return new Promise((resolve, reject) => {
+          if (!db) return resolve();
+          const tx = db.transaction('books', 'readwrite');
+          const req = tx.objectStore('books').put(bookRecord);
+          req.onsuccess = () => resolve();
+          req.onerror = (e) => reject(e.target.error);
+        });
+      }
+
+      function dbDeleteBook(id) {
+        return new Promise((resolve, reject) => {
+          if (!db) return resolve();
+          const tx = db.transaction('books', 'readwrite');
+          const req = tx.objectStore('books').delete(id);
+          req.onsuccess = () => resolve();
+          req.onerror = (e) => reject(e.target.error);
+        });
+      }
+
+      /* -------------------------------------------------------------------
+         6. CUSTOM AI PAGE CONTEXT & CONFIGURATION HELPERS
          ------------------------------------------------------------------- */
       function syncAiConfigUI() {
         const enableBtn = document.getElementById('ai-enable-toggle-btn');
-        enableBtn.textContent = prefs.aiEnabled ? 'ON' : 'OFF';
-        enableBtn.className = prefs.aiEnabled
-          ? 'px-3 py-1.5 rounded-lg bg-accent-soft text-accent text-xs font-semibold active:scale-95 transition'
-          : 'px-3 py-1.5 rounded-lg bg-surface border border-subtle text-xs font-semibold text-muted active:scale-95 transition';
-
+        if (enableBtn) {
+          enableBtn.textContent = prefs.aiEnabled ? 'ON' : 'OFF';
+          enableBtn.className = prefs.aiEnabled
+            ? 'px-3 py-1.5 rounded-lg bg-accent text-zinc-950 text-xs font-bold active:scale-95 transition'
+            : 'px-3 py-1.5 rounded-lg bg-surface border border-subtle text-xs font-semibold text-muted active:scale-95 transition';
+        }
         document.querySelectorAll('.ai-provider-btn').forEach((btn) => {
           const active = btn.dataset.provider === prefs.aiProvider;
-          btn.style.borderColor = active ? 'var(--accent)' : 'var(--border-subtle)';
-          btn.style.backgroundColor = active ? 'var(--accent-soft)' : 'transparent';
-          btn.style.color = active ? 'var(--accent)' : 'var(--text-primary)';
+          btn.className = active
+            ? 'ai-provider-btn py-2 px-3 rounded-xl border border-amber-500 bg-accent-soft text-accent text-xs font-semibold transition'
+            : 'ai-provider-btn py-2 px-3 rounded-xl border border-subtle bg-elevated text-muted text-xs font-semibold transition';
         });
-
-        const isGemini = prefs.aiProvider === 'gemini';
-        document.getElementById('ai-endpoint-group').classList.toggle('hidden', isGemini);
+        const epGroup = document.getElementById('ai-endpoint-group');
+        if (epGroup) epGroup.classList.toggle('hidden', prefs.aiProvider === 'gemini');
         document.getElementById('ai-endpoint-input').value = prefs.aiEndpoint || '';
-        document.getElementById('ai-model-input').value =
-          prefs.aiModel || (isGemini ? 'gemini-2.5-flash' : 'gpt-4o-mini');
-        document.getElementById('ai-model-input').placeholder = isGemini ? 'gemini-2.5-flash' : 'gpt-4o-mini';
+        document.getElementById('ai-model-input').value = prefs.aiModel || '';
         document.getElementById('ai-key-input').value = prefs.aiApiKey || '';
-        document.getElementById('ai-key-hint').textContent = isGemini
-          ? '(your Gemini API key, stored locally)'
-          : '(stored only on this device)';
         document.getElementById('ai-system-input').value = prefs.aiSystemPrompt || DEFAULT_PREFS.aiSystemPrompt;
       }
 
@@ -1272,46 +1132,931 @@
             const tc = await page.getTextContent();
             text = extractCleanParagraphs(tc.items).join('\n\n');
           }
-        } catch (e) {
-          text = '';
-        }
+        } catch (e) {}
         cachedPageContext = { bookId: activeBook.id, page: currentPage, text };
         return text;
       }
 
       async function openAiChatModal() {
-        if (!activeBook) {
-          showToast('Open a book first to chat about a page.');
-          return;
-        }
         const modal = document.getElementById('ai-chat-modal');
         const statusEl = document.getElementById('ai-context-status');
         modal.classList.remove('hidden');
-        statusEl.textContent = `Extracting Page ${currentPage} context...`;
-
-        const text = await getCurrentPageContextText();
-        const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+        statusEl.textContent = `Loading Page ${currentPage} context...`;
+        renderAiChatMessages();
+        const txt = await getCurrentPageContextText();
+        const words = txt.trim() ? txt.trim().split(/\s+/).length : 0;
         statusEl.textContent =
           words > 0
             ? `Page ${currentPage} of ${totalPages} loaded (${words} words)`
-            : `Page ${currentPage} has no selectable text (scanned image)`;
-
-        renderAiChatMessages();
+            : `Page ${currentPage} of ${totalPages} (image page — ask general questions)`;
       }
 
-      function renderAiChatMessages() {
+      /* -------------------------------------------------------------------
+         6B. CUTE AI-POWERED TAMAGOTCHI ("MOCHI") ENGINE
+         ------------------------------------------------------------------- */
+      const PET_PALETTES = {
+        cream: { body: '#f6e7cb', shade: '#e6cfa3', cheek: '#f29b9b', earInner: '#f3b7a6', accent: '#d99b52' },
+        peach: { body: '#f7c8b8', shade: '#e7a994', cheek: '#eb7a8a', earInner: '#fbe0d6', accent: '#e88b72' },
+        matcha: { body: '#cde5c4', shade: '#aed1a1', cheek: '#f19c9c', earInner: '#eaf6e4', accent: '#7fb373' },
+        lavender: { body: '#d8ccf2', shade: '#b9a6e2', cheek: '#f29bb8', earInner: '#eee7fb', accent: '#a88de0' }
+      };
+
+      const DEFAULT_PET = {
+        name: 'Mochi',
+        color: 'cream',
+        level: 1,
+        xp: 0,
+        hunger: 85,
+        happiness: 90,
+        energy: 90,
+        treats: 5,
+        mood: 'happy', // 'happy' | 'excited' | 'sleepy' | 'hungry' | 'curious' | 'proud'
+        lastSpeech: 'Ready to study together? Reading & 20s eye breaks help me grow!',
+        lastUpdated: Date.now(),
+        floatInReader: false,
+        readMinCounter: 0
+      };
+
+      let petState = loadPetState();
+      let petTalking = false;
+      let petAnimTimeout = null;
+
+      function loadPetState() {
+        try {
+          const raw = localStorage.getItem('eyesafe_pet_v1');
+          const p = raw ? { ...DEFAULT_PET, ...JSON.parse(raw) } : { ...DEFAULT_PET };
+          // Gentle real-time decay (stress-free: never dies, just gets hungry/sleepy)
+          const hoursPassed = Math.max(0, (Date.now() - (p.lastUpdated || Date.now())) / 3600000);
+          if (hoursPassed >= 0.5) {
+            p.hunger = Math.max(20, Math.round(p.hunger - hoursPassed * 3.5));
+            p.happiness = Math.max(25, Math.round(p.happiness - hoursPassed * 2.5));
+            p.energy = Math.min(100, Math.round(p.energy + hoursPassed * 4));
+            p.lastUpdated = Date.now();
+          }
+          return p;
+        } catch (e) {
+          return { ...DEFAULT_PET };
+        }
+      }
+
+      function savePetState() {
+        petState.lastUpdated = Date.now();
+        try {
+          localStorage.setItem('eyesafe_pet_v1', JSON.stringify(petState));
+        } catch (e) {}
+      }
+
+      function getPetXpTarget(level) {
+        return 40 + level * 20;
+      }
+
+      function getPetStageInfo(level) {
+        if (level >= 6) return { stage: 3, label: 'Star Sage' };
+        if (level >= 3) return { stage: 2, label: 'Book Bunny' };
+        return { stage: 1, label: 'Sprout' };
+      }
+
+      function getEffectivePetMood() {
+        if (petState.mood === 'excited' || petState.mood === 'proud' || petState.mood === 'curious') {
+          return petState.mood;
+        }
+        if (petState.energy <= 28) return 'sleepy';
+        if (petState.hunger <= 30) return 'hungry';
+        return petState.mood || 'happy';
+      }
+
+      function buildCutePetSVG(animClass = 'pet-body-float') {
+        const pal = PET_PALETTES[petState.color] || PET_PALETTES.cream;
+        const { stage } = getPetStageInfo(petState.level);
+        const mood = getEffectivePetMood();
+
+        // Stage-specific headgear / ears
+        let topAccessories = '';
+        if (stage === 1) {
+          // Cute tiny green sprout leaf on head
+          topAccessories = `
+            <path d="M50 24 Q49 14 55 10" stroke="#7fb373" stroke-width="3" stroke-linecap="round" fill="none"/>
+            <path d="M54 11 Q65 6 65 16 Q56 19 54 11 Z" fill="#8fd17f"/>
+            <path d="M50 16 Q40 12 40 20 Q48 22 50 16 Z" fill="#73b865"/>
+          `;
+        } else if (stage === 2) {
+          // Soft rounded bunny/cat study ears + tiny gold reading glasses
+          topAccessories = `
+            <ellipse cx="33" cy="22" rx="8" ry="15" transform="rotate(-14 33 22)" fill="${pal.body}" stroke="${pal.shade}" stroke-width="2"/>
+            <ellipse cx="33" cy="23" rx="4" ry="9" transform="rotate(-14 33 23)" fill="${pal.earInner}"/>
+            <ellipse cx="67" cy="22" rx="8" ry="15" transform="rotate(14 67 22)" fill="${pal.body}" stroke="${pal.shade}" stroke-width="2"/>
+            <ellipse cx="67" cy="23" rx="4" ry="9" transform="rotate(14 67 23)" fill="${pal.earInner}"/>
+          `;
+        } else {
+          // Stage 3: Star Sage halo + adorable soft owl tufts
+          topAccessories = `
+            <ellipse cx="50" cy="11" rx="18" ry="4.5" fill="none" stroke="#f2c46d" stroke-width="2.5" opacity="0.9"/>
+            <polygon points="50,3 52,8 57,8 53,11 54,16 50,13 46,16 47,11 43,8 48,8" fill="#ffd97d"/>
+            <path d="M27 33 Q24 19 36 25 Z" fill="${pal.body}" stroke="${pal.shade}" stroke-width="2"/>
+            <path d="M73 33 Q76 19 64 25 Z" fill="${pal.body}" stroke="${pal.shade}" stroke-width="2"/>
+          `;
+        }
+
+        // Dynamic kawaii face expressions
+        let faceMarkup = '';
+        if (mood === 'excited' || mood === 'proud') {
+          faceMarkup = `
+            <path d="M33 54 Q38 47 43 54" stroke="#2d2622" stroke-width="3.2" stroke-linecap="round" fill="none"/>
+            <path d="M57 54 Q62 47 67 54" stroke="#2d2622" stroke-width="3.2" stroke-linecap="round" fill="none"/>
+            <path d="M44 61 Q50 69 56 61" stroke="#2d2622" stroke-width="2.8" stroke-linecap="round" fill="none"/>
+          `;
+        } else if (mood === 'sleepy') {
+          faceMarkup = `
+            <path d="M33 55 Q38 59 43 55" stroke="#2d2622" stroke-width="2.8" stroke-linecap="round" fill="none"/>
+            <path d="M57 55 Q62 59 67 55" stroke="#2d2622" stroke-width="2.8" stroke-linecap="round" fill="none"/>
+            <ellipse cx="50" cy="63" rx="3.2" ry="2.4" fill="#2d2622" opacity="0.75"/>
+            <text x="73" y="34" font-size="11" font-weight="700" fill="#d99b52" opacity="0.85">z</text>
+            <text x="81" y="25" font-size="13" font-weight="700" fill="#d99b52" opacity="0.7">Z</text>
+          `;
+        } else if (mood === 'hungry') {
+          faceMarkup = `
+            <g class="pet-eye-blink">
+              <circle cx="38" cy="54" r="4.5" fill="#2d2622"/>
+              <circle cx="36.5" cy="52.3" r="1.6" fill="#ffffff"/>
+              <circle cx="62" cy="54" r="4.5" fill="#2d2622"/>
+              <circle cx="60.5" cy="52.3" r="1.6" fill="#ffffff"/>
+            </g>
+            <path d="M45 64 Q50 60 55 64" stroke="#2d2622" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+            <path d="M77 40 Q81 46 77 49 Q73 46 77 40 Z" fill="#7dc4e4" opacity="0.85"/>
+          `;
+        } else if (mood === 'curious') {
+          faceMarkup = `
+            <g class="pet-eye-blink">
+              <circle cx="38" cy="53" r="5" fill="#2d2622"/>
+              <circle cx="36.2" cy="51" r="1.8" fill="#ffffff"/>
+              <circle cx="62" cy="53" r="5" fill="#2d2622"/>
+              <circle cx="60.2" cy="51" r="1.8" fill="#ffffff"/>
+            </g>
+            <circle cx="50" cy="63" r="2.6" fill="none" stroke="#2d2622" stroke-width="2.3"/>
+            <text x="76" y="33" font-size="14" font-weight="800" fill="#f2c46d">?</text>
+          `;
+        } else {
+          // Default cozy happy blinking eyes + sweet cat-smile
+          faceMarkup = `
+            <g class="pet-eye-blink">
+              <circle cx="38" cy="53" r="4.8" fill="#2d2622"/>
+              <circle cx="36.3" cy="51.2" r="1.8" fill="#ffffff"/>
+              <circle cx="39.8" cy="55" r="0.9" fill="#ffffff" opacity="0.7"/>
+              <circle cx="62" cy="53" r="4.8" fill="#2d2622"/>
+              <circle cx="60.3" cy="51.2" r="1.8" fill="#ffffff"/>
+              <circle cx="63.8" cy="55" r="0.9" fill="#ffffff" opacity="0.7"/>
+            </g>
+            <path d="M44 61 Q47 65 50 61 Q53 65 56 61" stroke="#2d2622" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          `;
+        }
+
+        // Cute round study glasses for Stage 2 & 3
+        const glassesMarkup =
+          stage >= 2
+            ? `
+            <circle cx="38" cy="53" r="8.2" fill="none" stroke="${pal.accent}" stroke-width="1.8" opacity="0.85"/>
+            <circle cx="62" cy="53" r="8.2" fill="none" stroke="${pal.accent}" stroke-width="1.8" opacity="0.85"/>
+            <line x1="46.2" y1="53" x2="53.8" y2="53" stroke="${pal.accent}" stroke-width="1.8" opacity="0.85"/>
+          `
+            : '';
+
+        return `
+          <svg viewBox="0 0 100 100" class="w-full h-full overflow-visible" aria-hidden="true">
+            <!-- Soft ground shadow -->
+            <ellipse cx="50" cy="88" rx="26" ry="5.5" fill="rgba(0,0,0,0.22)"/>
+            <g class="${animClass}">
+              ${topAccessories}
+              <!-- Plump squishy mochi body -->
+              <path d="M20 62 C20 35, 31 23, 50 23 C69 23, 80 35, 80 62 C80 79, 68 85, 50 85 C32 85, 20 79, 20 62 Z"
+                    fill="${pal.body}" stroke="${pal.shade}" stroke-width="2.2"/>
+              <!-- Soft belly highlight -->
+              <ellipse cx="50" cy="72" rx="19" ry="9" fill="#ffffff" opacity="0.24"/>
+              <!-- Tiny stubby paws -->
+              <ellipse cx="28" cy="69" rx="5.5" ry="4" fill="${pal.body}" stroke="${pal.shade}" stroke-width="1.8"/>
+              <ellipse cx="72" cy="69" rx="5.5" ry="4" fill="${pal.body}" stroke="${pal.shade}" stroke-width="1.8"/>
+              <!-- Rosy kawaii cheeks -->
+              <ellipse cx="29" cy="60" rx="5.2" ry="3.1" fill="${pal.cheek}" opacity="0.55"/>
+              <ellipse cx="71" cy="60" rx="5.2" ry="3.1" fill="${pal.cheek}" opacity="0.55"/>
+              ${faceMarkup}
+              ${glassesMarkup}
+            </g>
+          </svg>
+        `;
+      }
+
+      function spawnPetParticles(symbols = ['♥', '✦']) {
+        const layer = document.getElementById('pet-particles-layer');
+        if (!layer) return;
+        for (let i = 0; i < 4; i++) {
+          const span = document.createElement('span');
+          span.className = 'pet-particle absolute text-sm sm:text-base font-bold';
+          span.textContent = symbols[i % symbols.length];
+          span.style.left = `${28 + Math.random() * 44}%`;
+          span.style.top = `${35 + Math.random() * 25}%`;
+          span.style.color = i % 2 === 0 ? '#f48fb1' : '#f2c46d';
+          span.style.animationDelay = `${i * 0.08}s`;
+          layer.appendChild(span);
+          setTimeout(() => span.remove(), 1250);
+        }
+      }
+
+      function triggerPetAnim(animClass) {
+        const svgMarkup = buildCutePetSVG(animClass);
+        const mainSlot = document.getElementById('pet-main-svg');
+        const libSlot = document.getElementById('lib-pet-svg');
+        if (mainSlot) mainSlot.innerHTML = svgMarkup;
+        if (libSlot) libSlot.innerHTML = svgMarkup;
+        clearTimeout(petAnimTimeout);
+        petAnimTimeout = setTimeout(() => {
+          updatePetUI();
+        }, 900);
+      }
+
+      function getSkyVibeLabel() {
+        const hr = new Date().getHours();
+        if (hr >= 4 && hr < 8) return '🌅 5 AM Dawn Club';
+        if (hr >= 8 && hr < 17) return '☀️ Focused Study';
+        if (hr >= 17 && hr < 21) return '🌇 Evening Revision';
+        return '🌙 Cozy Night Reading';
+      }
+
+      function updatePetUI() {
+        const { label: stageLabel } = getPetStageInfo(petState.level);
+        const xpTarget = getPetXpTarget(petState.level);
+        const xpPct = Math.min(100, Math.round((petState.xp / xpTarget) * 100));
+        const effMood = getEffectivePetMood();
+        const svg = buildCutePetSVG('pet-body-float');
+
+        // Render SVG in all visible slots
+        const mainSlot = document.getElementById('pet-main-svg');
+        const libSlot = document.getElementById('lib-pet-svg');
+        const miniSlot = document.getElementById('reader-pet-mini-icon');
+        const floatSlot = document.getElementById('floating-pet-svg');
+        if (mainSlot) mainSlot.innerHTML = svg;
+        if (libSlot) libSlot.innerHTML = svg;
+        if (miniSlot) miniSlot.innerHTML = svg;
+        if (floatSlot) floatSlot.innerHTML = svg;
+
+        // Library card text & bars
+        const setTxt = (id, val) => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = val;
+        };
+        const setWidth = (id, pct) => {
+          const el = document.getElementById(id);
+          if (el) el.style.width = `${Math.max(0, Math.min(100, pct))}%`;
+        };
+
+        setTxt('lib-pet-name', petState.name);
+        setTxt('lib-pet-stage-label', stageLabel);
+        setTxt('lib-pet-lv-pill', `Lv ${petState.level}`);
+        setTxt('lib-pet-treats', `🍡 ${petState.treats}`);
+        setTxt('lib-pet-speech', `"${petState.lastSpeech}"`);
+        setTxt('lib-pet-hunger-txt', `${petState.hunger}%`);
+        setTxt('lib-pet-happy-txt', `${petState.happiness}%`);
+        setTxt('lib-pet-energy-txt', `${petState.energy}%`);
+        setWidth('lib-pet-hunger-bar', petState.hunger);
+        setWidth('lib-pet-happy-bar', petState.happiness);
+        setWidth('lib-pet-energy-bar', petState.energy);
+
+        // Pocket modal text & bars
+        const nameInp = document.getElementById('pet-name-input');
+        if (nameInp && document.activeElement !== nameInp) nameInp.value = petState.name;
+        setTxt('pet-modal-level', `Lv ${petState.level} • ${stageLabel}`);
+        setTxt('pet-modal-treats', `🍡 ${petState.treats}`);
+        setTxt('pet-sky-label', getSkyVibeLabel());
+        setTxt('pet-xp-label', `XP ${petState.xp} / ${xpTarget}`);
+        setTxt('pet-modal-speech', `"${petState.lastSpeech}"`);
+        setTxt('pet-mood-tag', `Mood: ${effMood.charAt(0).toUpperCase() + effMood.slice(1)}`);
+        setTxt('pet-stat-hunger', `${petState.hunger}%`);
+        setTxt('pet-stat-happy', `${petState.happiness}%`);
+        setTxt('pet-stat-energy', `${petState.energy}%`);
+        setWidth('pet-bar-hunger', petState.hunger);
+        setWidth('pet-bar-happy', petState.happiness);
+        setWidth('pet-bar-energy', petState.energy);
+        setWidth('pet-bar-xp', xpPct);
+
+        // AI Badge status
+        const hasUserAi = (prefs.aiProvider === 'gemini' && prefs.aiApiKey) || (prefs.aiProvider === 'custom' && prefs.aiEndpoint && prefs.aiApiKey);
+        setTxt('pet-ai-badge', hasUserAi ? '✨ Connected to Your AI' : '✨ Smart Study Buddy');
+
+        // Color swatch rings
+        document.querySelectorAll('.pet-color-btn').forEach((btn) => {
+          const active = btn.dataset.petColor === petState.color;
+          btn.classList.toggle('border-amber-500', active);
+          btn.classList.toggle('scale-110', active);
+          btn.classList.toggle('border-transparent', !active);
+        });
+
+        // Floating reader buddy visibility
+        const floatBtn = document.getElementById('floating-pet-buddy');
+        const floatToggle = document.getElementById('pet-float-toggle-btn');
+        if (floatBtn) floatBtn.classList.toggle('hidden', !petState.floatInReader);
+        if (floatToggle) {
+          floatToggle.textContent = `Float in Reader: ${petState.floatInReader ? 'ON' : 'OFF'}`;
+          floatToggle.className = petState.floatInReader
+            ? 'px-2.5 py-1 rounded-lg bg-accent-soft border border-amber-500/30 text-[11px] font-semibold text-accent active:scale-95 transition'
+            : 'px-2.5 py-1 rounded-lg bg-elevated border border-subtle text-[11px] font-medium text-muted active:scale-95 transition';
+        }
+
+        // Alert dot in reader header if pet is hungry or sleepy
+        const alertDot = document.getElementById('reader-pet-alert-dot');
+        if (alertDot) {
+          alertDot.classList.toggle('hidden', !(petState.hunger <= 35 || petState.energy <= 30));
+        }
+      }
+
+      function grantPetXP(xpAmount, treatAmount = 0) {
+        petState.xp += xpAmount;
+        petState.treats += treatAmount;
+        let leveledUp = false;
+        while (petState.xp >= getPetXpTarget(petState.level)) {
+          petState.xp -= getPetXpTarget(petState.level);
+          petState.level += 1;
+          leveledUp = true;
+        }
+        if (leveledUp) {
+          const { label } = getPetStageInfo(petState.level);
+          petState.mood = 'proud';
+          petState.lastSpeech = `Yay!! I leveled up to Lv ${petState.level} (${label})! Your study discipline is powering me up!`;
+          spawnPetParticles(['★', '♥', '✦', '★']);
+          showToast(`✨ ${petState.name} reached Level ${petState.level} (${label})!`);
+        }
+        savePetState();
+        updatePetUI();
+      }
+
+      function rewardPetForReadingMinute() {
+        petState.readMinCounter = (petState.readMinCounter || 0) + 1;
+        petState.energy = Math.max(15, petState.energy - 1);
+        const earnedTreat = petState.readMinCounter % 3 === 0 ? 1 : 0;
+        grantPetXP(6, earnedTreat);
+      }
+
+      function rewardPetForEyeBreak() {
+        petState.energy = Math.min(100, petState.energy + 25);
+        petState.happiness = Math.min(100, petState.happiness + 12);
+        petState.mood = 'happy';
+        petState.lastSpeech = 'Ahh, our eyes feel so fresh after that 20-second rest! +2 snacks earned!';
+        grantPetXP(20, 2);
+      }
+
+      function rewardPetForQuizCorrect() {
+        petState.happiness = Math.min(100, petState.happiness + 8);
+        petState.mood = 'excited';
+        petState.lastSpeech = 'Boom! You nailed that question! Smart brain fuel for both of us!';
+        grantPetXP(10, 1);
+      }
+
+      function getOfflinePetReply(kind, userText = '') {
+        const name = petState.name;
+        const bookHint = activeBook ? ` on Page ${currentPage} of ${activeBook.title}` : '';
+        const lower = (userText || '').toLowerCase();
+
+        if (kind === 'feed') {
+          const snacks = [
+            'Nom nom! Roasted peanuts & mochi energy! Ready for more pages!',
+            'Yum!! Crunchy sprouted chana snack! My belly is so happy!',
+            'Munch munch~ Thank you! Let’s crush the next study block together!'
+          ];
+          return snacks[Math.floor(Math.random() * snacks.length)];
+        }
+        if (kind === 'pat') {
+          const pats = [
+            'Hehe~ *squish* That feels cozy! Keep going, you are doing great!',
+            'Purr~ Soft head-pats recharge my heart! Proud of your consistency!',
+            'Aww! *blushes* Even 5 focused pages today is a real win!'
+          ];
+          return pats[Math.floor(Math.random() * pats.length)];
+        }
+        if (kind === 'nap') {
+          return 'Taking a calm blink & shoulder-relax break together~ zZz. Protect those eyes!';
+        }
+        if (kind === 'spark') {
+          const sparks = [
+            `Quick focus check${bookHint}: Can you explain the last concept you read in ONE simple sentence?`,
+            'Mini challenge: Take 3 slow belly breaths (4s in, 6s out), then solve the next problem calmly!',
+            'Discipline secret: Small daily steps beat burnout every time. Ready for 2 more pages?'
+          ];
+          return sparks[Math.floor(Math.random() * sparks.length)];
+        }
+        if (lower.includes('tired') || lower.includes('sleep') || lower.includes('eye')) {
+          return 'Rest your eyes for 20 seconds or try the Listen button! Good sleep makes your brain sharper tomorrow.';
+        }
+        if (lower.includes('sad') || lower.includes('hard') || lower.includes('stress')) {
+          return `Hey, take a deep breath. Hard chapters take patience—just do one tiny step${bookHint}. ${name} believes in you!`;
+        }
+        if (lower.includes('morning') || lower.includes('5 am') || lower.includes('wake')) {
+          return 'Good morning champion! Quiet mornings are superpower hours. Drink water and let’s go!';
+        }
+        return `Hehe, I heard you! Keep steady${bookHint}—connect your AI key in Eye Care (· · ·) anytime if you want me to chat deeply with page context!`;
+      }
+
+      async function talkToPetAI(promptText, actionKind = 'chat') {
+        if (petTalking) return;
+        petTalking = true;
+        const sendBtn = document.getElementById('pet-chat-send-btn');
+        if (sendBtn) sendBtn.disabled = true;
+
+        petState.lastSpeech = '...thinking cute thoughts...';
+        updatePetUI();
+
+        const hasCustomAi =
+          (prefs.aiProvider === 'gemini' && prefs.aiApiKey && prefs.aiApiKey.trim()) ||
+          (prefs.aiProvider === 'custom' && prefs.aiEndpoint && prefs.aiEndpoint.trim() && prefs.aiApiKey && prefs.aiApiKey.trim());
+
+        const pageText = activeBook ? (await getCurrentPageContextText()).slice(0, 2500) : '';
+        const { label: stageLabel } = getPetStageInfo(petState.level);
+
+        const petSystemPrompt =
+          `You are ${petState.name}, an adorable, warm, encouraging pocket Tamagotchi study pet (Level ${petState.level} ${stageLabel}) inside EyeSafe Reader.\n` +
+          `Pet stats: Belly ${petState.hunger}%, Mood ${petState.happiness}%, Eyes/Energy ${petState.energy}%. User read ${stats.minutesRead} min today and took ${stats.breaksTaken} eye breaks.\n` +
+          (activeBook ? `User is currently reading "${activeBook.title}", Page ${currentPage}/${totalPages}.\n` : '') +
+          (pageText ? `Current page excerpt:\n${pageText}\n` : '') +
+          `Rules: Reply in 1–2 short, super cute, cozy sentences (max 35 words). Never use markdown formatting or asterisks. Start with a mood tag in brackets chosen ONLY from [happy], [excited], [sleepy], [curious], or [proud] — e.g. "[happy] You're doing amazing on straight lines! Let's try one more!"`;
+
+        let reply = '';
+        try {
+          if (hasCustomAi) {
+            reply = await callConfiguredAI([{ role: 'user', text: promptText }], petSystemPrompt);
+          } else {
+            // Try runtime Gemini endpoint if available, otherwise fall back gracefully to offline brain
+            const resp = await fetch(
+              'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=',
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  contents: [{ parts: [{ text: promptText }] }],
+                  systemInstruction: { parts: [{ text: petSystemPrompt }] }
+                })
+              }
+            );
+            if (resp.ok) {
+              const data = await resp.json().catch(() => ({}));
+              reply = (data?.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
+            }
+          }
+        } catch (e) {
+          reply = '';
+        }
+
+        if (reply) {
+          const moodMatch = reply.match(/^\[(happy|excited|sleepy|curious|proud)\]\s*/i);
+          if (moodMatch) {
+            petState.mood = moodMatch[1].toLowerCase();
+            reply = reply.slice(moodMatch[0].length).trim();
+          } else {
+            petState.mood = 'happy';
+          }
+          petState.lastSpeech = reply.replace(/^["']|["']$/g, '');
+          petState.happiness = Math.min(100, petState.happiness + 5);
+          grantPetXP(4, 0);
+        } else {
+          petState.lastSpeech = getOfflinePetReply(actionKind, promptText);
+          savePetState();
+          updatePetUI();
+        }
+
+        spawnPetParticles(['✦', '♥']);
+        petTalking = false;
+        if (sendBtn) sendBtn.disabled = false;
+      }
+
+      function handlePetAction(action) {
+        if (action === 'feed') {
+          if (petState.treats <= 0) {
+            petState.mood = 'hungry';
+            petState.lastSpeech = 'All out of snacks! Read for 3 minutes, take a 20s eye break, or ace a quiz to earn more!';
+            savePetState();
+            updatePetUI();
+            showToast('Read or take an eye break to earn more 🍡 snacks!');
+            return;
+          }
+          petState.treats -= 1;
+          petState.hunger = Math.min(100, petState.hunger + 22);
+          petState.happiness = Math.min(100, petState.happiness + 8);
+          petState.mood = 'excited';
+          petState.lastSpeech = getOfflinePetReply('feed');
+          spawnPetParticles(['🍡', '♥', '✦', '🍡']);
+          triggerPetAnim('pet-body-chomp');
+          grantPetXP(8, 0);
+        } else if (action === 'pat') {
+          petState.happiness = Math.min(100, petState.happiness + 10);
+          petState.mood = 'excited';
+          petState.lastSpeech = getOfflinePetReply('pat');
+          spawnPetParticles(['♥', '♥', '✦', '♥']);
+          triggerPetAnim('pet-body-squish');
+          grantPetXP(3, 0);
+        } else if (action === 'nap') {
+          petState.energy = Math.min(100, petState.energy + 25);
+          petState.mood = 'sleepy';
+          petState.lastSpeech = getOfflinePetReply('nap');
+          spawnPetParticles(['💤', '✦', '🌙']);
+          savePetState();
+          updatePetUI();
+        } else if (action === 'spark') {
+          petState.happiness = Math.min(100, petState.happiness + 8);
+          petState.energy = Math.max(15, petState.energy - 5);
+          petState.mood = 'curious';
+          triggerPetAnim('pet-body-squish');
+          const sparkPrompt = activeBook
+            ? `Give me one playful, tiny 1-sentence study spark or mini-riddle inspired by Page ${currentPage} of my book!`
+            : 'Give me one cute 1-sentence study motivation spark or tiny brain teaser!';
+          talkToPetAI(sparkPrompt, 'spark');
+        }
+      }
+
+      function formatSafeMarkdown(text) {
+        return escapeHTML(text)
+          .replace(/^---$/gm, '<hr class="my-2 border-subtle" />')
+          .replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-main">$1</strong>')
+          .replace(/`([^`]+)`/g, '<code class="px-1 py-0.5 rounded bg-surface/90 text-accent text-[11px] font-mono">$1</code>');
+      }
+
+      function stripOptionPrefix(optText) {
+        return String(optText || '').replace(/^\s*(?:\(?[A-Da-d][\)\.\:]|Option\s+[A-Da-d][\)\.\:]?)\s+/i, '').trim();
+      }
+
+      function extractQuizJSON(rawText) {
+        if (!rawText) return null;
+        let cleaned = String(rawText).trim();
+        // Strip markdown code fences if present
+        const fenceMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)```/i);
+        if (fenceMatch && fenceMatch[1]) {
+          cleaned = fenceMatch[1].trim();
+        }
+        // Locate outermost JSON object or array
+        const firstBrace = cleaned.indexOf('{');
+        const firstBracket = cleaned.indexOf('[');
+        let start = -1;
+        let end = -1;
+        if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
+          start = firstBrace;
+          end = cleaned.lastIndexOf('}');
+        } else if (firstBracket !== -1) {
+          start = firstBracket;
+          end = cleaned.lastIndexOf(']');
+        }
+        if (start === -1 || end <= start) return null;
+
+        let parsed = null;
+        try {
+          parsed = JSON.parse(cleaned.slice(start, end + 1));
+        } catch (e) {
+          return null;
+        }
+
+        const rawList = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.questions) ? parsed.questions : []);
+        if (!rawList.length) return null;
+
+        const questions = rawList.map((item) => {
+          const hasOptions = Array.isArray(item.options) && item.options.length >= 2;
+          const type = item.type === 'subjective' || !hasOptions ? 'subjective' : 'mcq';
+
+          if (type === 'mcq') {
+            const options = item.options.slice(0, 4).map(stripOptionPrefix);
+            let correctIndex = 0;
+            const rawCorrect = item.correctIndex ?? item.correct_index ?? item.answerIndex ?? item.answer;
+            if (typeof rawCorrect === 'number' && rawCorrect >= 0 && rawCorrect < options.length) {
+              correctIndex = rawCorrect;
+            } else if (typeof rawCorrect === 'string') {
+              const trimmed = rawCorrect.trim();
+              if (/^[A-Da-d]$/.test(trimmed)) {
+                correctIndex = trimmed.toUpperCase().charCodeAt(0) - 65;
+              } else if (/^[0-3]$/.test(trimmed)) {
+                correctIndex = Number(trimmed);
+              } else {
+                const matchIdx = options.findIndex((o) => o.toLowerCase() === stripOptionPrefix(trimmed).toLowerCase());
+                if (matchIdx >= 0) correctIndex = matchIdx;
+              }
+            }
+            correctIndex = Math.max(0, Math.min(options.length - 1, correctIndex));
+
+            return {
+              type: 'mcq',
+              question: String(item.question || '').trim(),
+              options,
+              correctIndex,
+              explanation: String(item.explanation || '').trim(),
+              selectedIndex: null
+            };
+          }
+
+          return {
+            type: 'subjective',
+            question: String(item.question || '').trim(),
+            modelAnswer: String(item.modelAnswer || item.model_answer || item.answer || '').trim(),
+            explanation: String(item.explanation || '').trim(),
+            userAnswer: '',
+            revealed: false,
+            grading: false,
+            aiFeedback: null, // { status: 'correct'|'partial'|'incorrect', feedback: string }
+            selfStatus: null  // 'correct' | 'incorrect'
+          };
+        }).filter((q) => q.question);
+
+        if (!questions.length) return null;
+        return {
+          title: String((!Array.isArray(parsed) && parsed.title) || `Page ${currentPage} Practice Quiz`),
+          mode: selectedQuizMode,
+          questions
+        };
+      }
+
+      function computeQuizScore(quiz) {
+        let answered = 0;
+        let score = 0;
+        quiz.questions.forEach((q) => {
+          if (q.type === 'mcq') {
+            if (q.selectedIndex !== null) {
+              answered++;
+              if (q.selectedIndex === q.correctIndex) score += 1;
+            }
+          } else {
+            if (q.aiFeedback) {
+              answered++;
+              if (q.aiFeedback.status === 'correct') score += 1;
+              else if (q.aiFeedback.status === 'partial') score += 0.5;
+            } else if (q.selfStatus) {
+              answered++;
+              if (q.selfStatus === 'correct') score += 1;
+            }
+          }
+        });
+        return { answered, score, total: quiz.questions.length };
+      }
+
+      function renderQuizCard(msg, msgIdx) {
+        const quiz = msg.quiz;
+        const { answered, score, total } = computeQuizScore(quiz);
+        const card = document.createElement('div');
+        card.className = 'w-full rounded-2xl bg-elevated/90 border border-subtle overflow-hidden';
+
+        // Header with title and live score pill
+        const header = document.createElement('div');
+        header.className = 'px-3.5 py-2.5 bg-surface/70 border-b border-subtle flex items-center justify-between gap-2';
+        header.innerHTML = `
+          <div class="min-w-0">
+            <p class="text-xs font-bold text-accent truncate">${escapeHTML(quiz.title)}</p>
+            <p class="text-[10px] text-muted">${answered}/${total} answered</p>
+          </div>
+          <span class="px-2.5 py-1 rounded-full bg-accent-soft text-accent text-[11px] font-bold tabular-nums shrink-0">
+            Score: ${Number.isInteger(score) ? score : score.toFixed(1)} / ${total}
+          </span>
+        `;
+        card.appendChild(header);
+
+        const body = document.createElement('div');
+        body.className = 'p-3.5 space-y-4';
+
+        const letters = ['A', 'B', 'C', 'D'];
+
+        quiz.questions.forEach((q, qIdx) => {
+          const qBlock = document.createElement('div');
+          qBlock.className = 'p-3 rounded-xl bg-surface/80 border border-subtle space-y-2.5';
+
+          // Question top label & text
+          const qTop = document.createElement('div');
+          qTop.className = 'flex items-start justify-between gap-2';
+          qTop.innerHTML = `
+            <span class="px-2 py-0.5 rounded-md bg-elevated text-accent text-[10px] font-semibold uppercase tracking-wide shrink-0">
+              Q${qIdx + 1} • ${q.type === 'mcq' ? 'MCQ' : 'Subjective'}
+            </span>
+          `;
+          qBlock.appendChild(qTop);
+
+          const qText = document.createElement('p');
+          qText.className = 'text-xs sm:text-sm font-medium text-main leading-relaxed';
+          qText.innerHTML = formatSafeMarkdown(q.question);
+          qBlock.appendChild(qText);
+
+          if (q.type === 'mcq') {
+            const optsWrap = document.createElement('div');
+            optsWrap.className = 'space-y-2';
+
+            q.options.forEach((optText, oIdx) => {
+              const btn = document.createElement('button');
+              btn.type = 'button';
+              const isAnswered = q.selectedIndex !== null;
+              const isSelected = q.selectedIndex === oIdx;
+              const isCorrect = q.correctIndex === oIdx;
+
+              let stateClasses = 'bg-elevated border-subtle text-main hover:border-amber-500/50';
+              let badgeClasses = 'bg-surface text-muted border border-subtle';
+              let statusMark = '';
+
+              if (isAnswered) {
+                if (isCorrect) {
+                  stateClasses = 'bg-emerald-500/15 border-emerald-500/60 text-emerald-200';
+                  badgeClasses = 'bg-emerald-500 text-zinc-950 font-bold';
+                  statusMark = '<span class="ml-auto text-[11px] font-bold text-emerald-400 shrink-0">✓ Correct</span>';
+                } else if (isSelected) {
+                  stateClasses = 'bg-red-500/15 border-red-500/60 text-red-200';
+                  badgeClasses = 'bg-red-500 text-white font-bold';
+                  statusMark = '<span class="ml-auto text-[11px] font-bold text-red-400 shrink-0">✕ Yours</span>';
+                } else {
+                  stateClasses = 'bg-elevated/40 border-subtle text-muted opacity-65';
+                }
+              }
+
+              btn.className = `w-full text-left px-3 py-2.5 rounded-xl border text-xs sm:text-sm flex items-start gap-2.5 transition active:scale-[0.99] ${stateClasses}`;
+              btn.innerHTML = `
+                <span class="w-5 h-5 rounded-md text-[11px] flex items-center justify-center shrink-0 mt-0.5 ${badgeClasses}">${letters[oIdx] || oIdx + 1}</span>
+                <span class="leading-snug flex-1">${formatSafeMarkdown(optText)}</span>
+                ${statusMark}
+              `;
+
+              btn.addEventListener('click', () => {
+                if (q.selectedIndex !== null) return;
+                q.selectedIndex = oIdx;
+                if (oIdx === q.correctIndex) {
+                  rewardPetForQuizCorrect();
+                }
+                renderAiChatMessages({ scrollToBottom: false });
+              });
+
+              optsWrap.appendChild(btn);
+            });
+            qBlock.appendChild(optsWrap);
+
+            if (q.selectedIndex !== null) {
+              const expBox = document.createElement('div');
+              expBox.className = 'p-2.5 rounded-xl bg-elevated/80 border border-subtle text-[11px] sm:text-xs text-muted leading-relaxed space-y-1.5';
+              expBox.innerHTML = `
+                <p><strong class="text-accent">Explanation:</strong> ${formatSafeMarkdown(q.explanation || 'Review the highlighted correct option above.')}</p>
+              `;
+              const explainMoreBtn = document.createElement('button');
+              explainMoreBtn.type = 'button';
+              explainMoreBtn.className = 'text-[11px] text-accent underline underline-offset-2 font-medium';
+              explainMoreBtn.textContent = 'Ask AI to explain step-by-step';
+              explainMoreBtn.addEventListener('click', () => {
+                sendAiChatMessage(`Explain Question ${qIdx + 1} step-by-step: "${q.question}"`);
+              });
+              expBox.appendChild(explainMoreBtn);
+              qBlock.appendChild(expBox);
+            }
+          } else {
+            // SUBJECTIVE / FILL-IN-THE-ANSWER INTERACTIVE UI
+            const ta = document.createElement('textarea');
+            ta.rows = 3;
+            ta.placeholder = 'Type your answer or calculation here...';
+            ta.value = q.userAnswer || '';
+            ta.className = 'w-full px-3 py-2 rounded-xl bg-elevated border border-subtle text-main text-xs sm:text-sm outline-none focus:border-amber-500 resize-y';
+            ta.addEventListener('input', (e) => {
+              q.userAnswer = e.target.value;
+            });
+            qBlock.appendChild(ta);
+
+            const btnRow = document.createElement('div');
+            btnRow.className = 'flex flex-wrap items-center gap-2';
+
+            const checkAiBtn = document.createElement('button');
+            checkAiBtn.type = 'button';
+            checkAiBtn.disabled = !!q.grading || aiRequestInFlight;
+            checkAiBtn.className = 'px-3 py-2 rounded-xl bg-accent text-zinc-950 font-semibold text-[11px] sm:text-xs active:scale-95 transition disabled:opacity-45';
+            checkAiBtn.textContent = q.grading ? 'Checking...' : 'Check with AI';
+            checkAiBtn.addEventListener('click', () => {
+              if (!q.userAnswer || !q.userAnswer.trim()) {
+                showToast('Write your answer in the box first.');
+                return;
+              }
+              gradeSubjectiveAnswer(msgIdx, qIdx);
+            });
+
+            const revealBtn = document.createElement('button');
+            revealBtn.type = 'button';
+            revealBtn.className = 'px-3 py-2 rounded-xl bg-elevated border border-subtle text-main font-medium text-[11px] sm:text-xs active:scale-95 transition';
+            revealBtn.textContent = q.revealed ? 'Hide Solution' : 'Reveal Answer';
+            revealBtn.addEventListener('click', () => {
+              q.revealed = !q.revealed;
+              renderAiChatMessages({ scrollToBottom: false });
+            });
+
+            btnRow.appendChild(checkAiBtn);
+            btnRow.appendChild(revealBtn);
+            qBlock.appendChild(btnRow);
+
+            // AI Grading Feedback Banner
+            if (q.aiFeedback) {
+              const statusMap = {
+                correct: { cls: 'bg-emerald-500/15 border-emerald-500/50 text-emerald-200', label: '✓ Correct' },
+                partial: { cls: 'bg-amber-500/15 border-amber-500/50 text-amber-200', label: '◐ Partially Correct' },
+                incorrect: { cls: 'bg-red-500/15 border-red-500/50 text-red-200', label: '✕ Needs Correction' }
+              };
+              const st = statusMap[q.aiFeedback.status] || statusMap.partial;
+              const fbBox = document.createElement('div');
+              fbBox.className = `p-2.5 rounded-xl border text-[11px] sm:text-xs leading-relaxed ${st.cls}`;
+              fbBox.innerHTML = `<p class="font-bold mb-1">${st.label}</p><p>${formatSafeMarkdown(q.aiFeedback.feedback)}</p>`;
+              qBlock.appendChild(fbBox);
+            }
+
+            // Model Answer & Self-Check
+            if (q.revealed) {
+              const solBox = document.createElement('div');
+              solBox.className = 'p-2.5 rounded-xl bg-elevated/80 border border-subtle text-[11px] sm:text-xs text-muted leading-relaxed space-y-2';
+              solBox.innerHTML = `
+                <p><strong class="text-accent">Model Answer:</strong> ${formatSafeMarkdown(q.modelAnswer || 'See explanation below.')}</p>
+                ${q.explanation ? `<p><strong class="text-main">Concept Note:</strong> ${formatSafeMarkdown(q.explanation)}</p>` : ''}
+              `;
+
+              // Allow quick self-marking if user didn't use AI grading
+              if (!q.aiFeedback) {
+                const selfRow = document.createElement('div');
+                selfRow.className = 'flex items-center gap-2 pt-1';
+                selfRow.innerHTML = `<span class="text-[10px] text-muted">Mark yourself:</span>`;
+
+                const gotItBtn = document.createElement('button');
+                gotItBtn.type = 'button';
+                gotItBtn.className = q.selfStatus === 'correct'
+                  ? 'px-2.5 py-1 rounded-lg bg-emerald-500 text-zinc-950 font-semibold text-[11px]'
+                  : 'px-2.5 py-1 rounded-lg bg-surface border border-subtle text-emerald-400 text-[11px]';
+                gotItBtn.textContent = '✓ Got it';
+                gotItBtn.addEventListener('click', () => {
+                  q.selfStatus = 'correct';
+                  renderAiChatMessages({ scrollToBottom: false });
+                });
+
+                const missedBtn = document.createElement('button');
+                missedBtn.type = 'button';
+                missedBtn.className = q.selfStatus === 'incorrect'
+                  ? 'px-2.5 py-1 rounded-lg bg-red-500 text-white font-semibold text-[11px]'
+                  : 'px-2.5 py-1 rounded-lg bg-surface border border-subtle text-red-400 text-[11px]';
+                missedBtn.textContent = '✕ Review';
+                missedBtn.addEventListener('click', () => {
+                  q.selfStatus = 'incorrect';
+                  renderAiChatMessages({ scrollToBottom: false });
+                });
+
+                selfRow.appendChild(gotItBtn);
+                selfRow.appendChild(missedBtn);
+                solBox.appendChild(selfRow);
+              }
+
+              qBlock.appendChild(solBox);
+            }
+          }
+
+          body.appendChild(qBlock);
+        });
+
+        // Quiz Card Footer (Reset / Generate Another)
+        const footer = document.createElement('div');
+        footer.className = 'pt-1 flex items-center justify-between gap-2';
+
+        const retryBtn = document.createElement('button');
+        retryBtn.type = 'button';
+        retryBtn.className = 'px-3 py-1.5 rounded-xl bg-surface border border-subtle text-muted hover:text-main text-[11px] font-medium active:scale-95 transition';
+        retryBtn.textContent = 'Reset Answers';
+        retryBtn.addEventListener('click', () => {
+          quiz.questions.forEach((q) => {
+            if (q.type === 'mcq') {
+              q.selectedIndex = null;
+            } else {
+              q.userAnswer = '';
+              q.revealed = false;
+              q.aiFeedback = null;
+              q.selfStatus = null;
+            }
+          });
+          renderAiChatMessages({ scrollToBottom: false });
+        });
+
+        const newQuizBtn = document.createElement('button');
+        newQuizBtn.type = 'button';
+        newQuizBtn.className = 'px-3 py-1.5 rounded-xl bg-accent-soft text-accent text-[11px] font-semibold active:scale-95 transition';
+        newQuizBtn.textContent = 'New Quiz →';
+        newQuizBtn.addEventListener('click', () => generateInteractiveQuiz(selectedQuizMode, selectedQuizCount));
+
+        footer.appendChild(retryBtn);
+        footer.appendChild(newQuizBtn);
+        body.appendChild(footer);
+
+        card.appendChild(body);
+        return card;
+      }
+
+      function renderAiChatMessages(opts = {}) {
+        const { scrollToBottom = true } = opts;
         const feed = document.getElementById('ai-chat-messages');
+        const prevScrollTop = feed.scrollTop;
+
         if (aiChatHistory.length === 0) {
           feed.innerHTML = `
             <div class="text-center py-8 px-4 text-muted text-xs leading-relaxed">
               Ask anything about <strong class="text-main">Page ${currentPage}</strong> of
-              <span class="text-accent">${escapeHTML(activeBook ? activeBook.title : 'this book')}</span>.
-              The page text is automatically attached as context.
+              <span class="text-accent">${escapeHTML(activeBook ? activeBook.title : 'this book')}</span>,
+              or tap <strong class="text-accent">Interactive Quiz</strong> above for clickable MCQ &amp; Subjective practice.
             </div>`;
           return;
         }
         feed.innerHTML = '';
-        aiChatHistory.forEach((msg) => {
+        aiChatHistory.forEach((msg, idx) => {
+          if (msg.role === 'quiz' && msg.quiz) {
+            feed.appendChild(renderQuizCard(msg, idx));
+            return;
+          }
+
           const wrap = document.createElement('div');
           const isUser = msg.role === 'user';
           wrap.className = isUser ? 'flex justify-end' : 'flex justify-start';
@@ -1321,11 +2066,18 @@
             : msg.isError
               ? 'max-w-[90%] px-3.5 py-2.5 rounded-2xl rounded-bl-sm bg-red-500/15 border border-red-500/30 text-red-200 whitespace-pre-wrap leading-relaxed'
               : 'max-w-[90%] px-3.5 py-2.5 rounded-2xl rounded-bl-sm bg-elevated border border-subtle text-main whitespace-pre-wrap leading-relaxed';
-          bubble.textContent = msg.text;
+
+          if (isUser || msg.isError || msg.isPending) {
+            bubble.textContent = msg.text;
+          } else {
+            bubble.innerHTML = formatSafeMarkdown(msg.text);
+          }
+
           wrap.appendChild(bubble);
           feed.appendChild(wrap);
         });
-        feed.scrollTop = feed.scrollHeight;
+
+        feed.scrollTop = scrollToBottom ? feed.scrollHeight : prevScrollTop;
       }
 
       async function fetchWithBackoff(url, options, maxRetries = 2) {
@@ -1337,6 +2089,179 @@
           }
           await new Promise((r) => setTimeout(r, delay));
           delay *= 2;
+        }
+      }
+
+      async function callConfiguredAI(turns, systemInstruction) {
+        if (prefs.aiProvider === 'gemini') {
+          const model = (prefs.aiModel || 'gemini-2.5-flash').trim();
+          const key = (prefs.aiApiKey || '').trim();
+          if (!key) {
+            throw new Error('Please add your Gemini API key in AI Settings (gear icon).');
+          }
+          const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
+          const payload = {
+            contents: turns.map((m) => ({
+              role: m.role === 'user' ? 'user' : 'model',
+              parts: [{ text: m.text }]
+            })),
+            systemInstruction: { parts: [{ text: systemInstruction }] }
+          };
+          const resp = await fetchWithBackoff(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const data = await resp.json().catch(() => ({}));
+          if (!resp.ok) {
+            throw new Error(data?.error?.message || `Request failed (${resp.status})`);
+          }
+          return (data?.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
+        } else {
+          const endpoint = (prefs.aiEndpoint || '').trim();
+          if (!endpoint) {
+            throw new Error('Please set your Custom API Endpoint URL in AI Settings (gear icon).');
+          }
+          const headers = { 'Content-Type': 'application/json' };
+          if (prefs.aiApiKey && prefs.aiApiKey.trim()) {
+            headers['Authorization'] = `Bearer ${prefs.aiApiKey.trim()}`;
+          }
+          const payload = {
+            model: (prefs.aiModel || 'gpt-4o-mini').trim(),
+            messages: [
+              { role: 'system', content: systemInstruction },
+              ...turns.map((m) => ({ role: m.role, content: m.text }))
+            ]
+          };
+          const resp = await fetchWithBackoff(endpoint, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(payload)
+          });
+          const data = await resp.json().catch(() => ({}));
+          if (!resp.ok) {
+            throw new Error(data?.error?.message || data?.message || `API Error (${resp.status})`);
+          }
+          return String(
+            data?.choices?.[0]?.message?.content ||
+            data?.message?.content ||
+            data?.response ||
+            data?.output_text ||
+            ''
+          ).trim();
+        }
+      }
+
+      async function generateInteractiveQuiz(mode = 'mcq', count = 3) {
+        if (aiRequestInFlight) return;
+        document.getElementById('ai-quiz-builder').classList.add('hidden');
+
+        aiRequestInFlight = true;
+        document.getElementById('ai-send-btn').disabled = true;
+
+        const modeLabel = mode === 'mcq' ? 'MCQ' : mode === 'subjective' ? 'Subjective' : 'Mixed MCQ + Subjective';
+        aiChatHistory.push({
+          role: 'assistant',
+          text: `Building your ${count}-question interactive ${modeLabel} quiz from Page ${currentPage}...`,
+          isPending: true
+        });
+        renderAiChatMessages();
+
+        const pageText = await getCurrentPageContextText();
+        const clippedContext = pageText.slice(0, 12000);
+
+        const typeRule =
+          mode === 'mcq'
+            ? `Every question MUST have "type": "mcq" with exactly 4 distinct options in "options" and a 0-based integer "correctIndex" (0, 1, 2, or 3).`
+            : mode === 'subjective'
+              ? `Every question MUST have "type": "subjective" with a clear "modelAnswer" and concise "explanation".`
+              : `Include a mix of both "mcq" (with 4 "options" and 0-based "correctIndex") and "subjective" (with "modelAnswer") questions.`;
+
+        const quizSystemPrompt =
+          `You are a strict JSON quiz generator for competitive exam & book study.\n` +
+          `Return ONLY valid raw JSON with NO markdown prose before or after.\n` +
+          `Schema:\n` +
+          `{\n` +
+          `  "title": "Short Quiz Title",\n` +
+          `  "questions": [\n` +
+          `    { "type": "mcq", "question": "...", "options": ["...", "...", "...", "..."], "correctIndex": 0, "explanation": "..." },\n` +
+          `    { "type": "subjective", "question": "...", "modelAnswer": "...", "explanation": "..." }\n` +
+          `  ]\n` +
+          `}\n` +
+          `Book: "${activeBook ? activeBook.title : 'Unknown'}" (Page ${currentPage}).\n` +
+          `--- PAGE CONTEXT ---\n${clippedContext || '[No extractable text on this page]'}\n--- END CONTEXT ---`;
+
+        const userPrompt = `Generate exactly ${count} high-quality exam-style practice questions strictly from the page context above. ${typeRule} Return ONLY the JSON object.`;
+
+        try {
+          const rawReply = await callConfiguredAI([{ role: 'user', text: userPrompt }], quizSystemPrompt);
+          const quizData = extractQuizJSON(rawReply);
+
+          aiChatHistory.pop();
+          if (quizData) {
+            aiChatHistory.push({ role: 'quiz', quiz: quizData });
+          } else {
+            // Graceful fallback if a tiny model didn't obey strict JSON
+            aiChatHistory.push({
+              role: 'assistant',
+              text: rawReply || 'Could not generate quiz questions for this page.'
+            });
+          }
+        } catch (err) {
+          aiChatHistory.pop();
+          aiChatHistory.push({
+            role: 'assistant',
+            isError: true,
+            text: `Could not generate quiz: ${err.message || 'Check your AI Settings.'}`
+          });
+        } finally {
+          aiRequestInFlight = false;
+          document.getElementById('ai-send-btn').disabled = false;
+          renderAiChatMessages();
+        }
+      }
+
+      async function gradeSubjectiveAnswer(msgIdx, qIdx) {
+        const msg = aiChatHistory[msgIdx];
+        if (!msg || !msg.quiz || !msg.quiz.questions[qIdx] || aiRequestInFlight) return;
+        const q = msg.quiz.questions[qIdx];
+
+        aiRequestInFlight = true;
+        q.grading = true;
+        renderAiChatMessages({ scrollToBottom: false });
+
+        const graderSystem =
+          `You are a fair, concise exam grader. Grade the student's answer against the model answer.\n` +
+          `Return ONLY valid JSON: { "status": "correct" | "partial" | "incorrect", "feedback": "1-3 crisp sentences explaining what is right/missing." }`;
+
+        const graderPrompt =
+          `Question: ${q.question}\n` +
+          `Model Answer: ${q.modelAnswer}\n` +
+          `Student Answer: ${q.userAnswer}`;
+
+        try {
+          const raw = await callConfiguredAI([{ role: 'user', text: graderPrompt }], graderSystem);
+          let parsed = null;
+          try {
+            const cleaned = raw.replace(/```(?:json)?\s*([\s\S]*?)```/i, '$1').trim();
+            const s = cleaned.indexOf('{');
+            const e = cleaned.lastIndexOf('}');
+            if (s !== -1 && e > s) parsed = JSON.parse(cleaned.slice(s, e + 1));
+          } catch (e) {}
+
+          if (parsed && parsed.feedback) {
+            const st = ['correct', 'partial', 'incorrect'].includes(parsed.status) ? parsed.status : 'partial';
+            q.aiFeedback = { status: st, feedback: String(parsed.feedback) };
+          } else {
+            q.aiFeedback = { status: 'partial', feedback: raw || 'Graded — compare with the model answer below.' };
+          }
+          q.revealed = true;
+        } catch (err) {
+          showToast(`Grading failed: ${err.message || 'Check AI settings'}`);
+        } finally {
+          q.grading = false;
+          aiRequestInFlight = false;
+          renderAiChatMessages({ scrollToBottom: false });
         }
       }
 
@@ -1358,71 +2283,13 @@
           `--- CURRENT PAGE TEXT ---\n${clippedContext || '[No extractable text on this page]'}\n--- END PAGE TEXT ---`;
 
         const priorTurns = aiChatHistory
-          .filter((m) => !m.isPending && !m.isError)
+          .filter((m) => (m.role === 'user' || m.role === 'assistant') && !m.isPending && !m.isError)
           .slice(-8);
 
         try {
-          let replyText = '';
-
-          if (prefs.aiProvider === 'gemini') {
-            const model = (prefs.aiModel || 'gemini-2.5-flash').trim();
-            const key = (prefs.aiApiKey || '').trim();
-            if (!key) {
-              throw new Error('Please add your Gemini API key in AI Settings (gear icon).');
-            }
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
-            const payload = {
-              contents: priorTurns.map((m) => ({
-                role: m.role === 'user' ? 'user' : 'model',
-                parts: [{ text: m.text }]
-              })),
-              systemInstruction: { parts: [{ text: systemInstruction }] }
-            };
-            const resp = await fetchWithBackoff(apiUrl, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload)
-            });
-            const data = await resp.json().catch(() => ({}));
-            if (!resp.ok) {
-              throw new Error(data?.error?.message || `Request failed (${resp.status})`);
-            }
-            replyText = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'No response received.';
-          } else {
-            const endpoint = (prefs.aiEndpoint || '').trim();
-            if (!endpoint) {
-              throw new Error('Please set your Custom API Endpoint URL in AI Settings (gear icon).');
-            }
-            const headers = { 'Content-Type': 'application/json' };
-            if (prefs.aiApiKey && prefs.aiApiKey.trim()) {
-              headers['Authorization'] = `Bearer ${prefs.aiApiKey.trim()}`;
-            }
-            const payload = {
-              model: (prefs.aiModel || 'gpt-4o-mini').trim(),
-              messages: [
-                { role: 'system', content: systemInstruction },
-                ...priorTurns.map((m) => ({ role: m.role, content: m.text }))
-              ]
-            };
-            const resp = await fetchWithBackoff(endpoint, {
-              method: 'POST',
-              headers,
-              body: JSON.stringify(payload)
-            });
-            const data = await resp.json().catch(() => ({}));
-            if (!resp.ok) {
-              throw new Error(data?.error?.message || data?.message || `API Error (${resp.status})`);
-            }
-            replyText =
-              data?.choices?.[0]?.message?.content ||
-              data?.message?.content ||
-              data?.response ||
-              data?.output_text ||
-              'No response text found in API reply.';
-          }
-
+          const replyText = await callConfiguredAI(priorTurns, systemInstruction);
           aiChatHistory.pop();
-          aiChatHistory.push({ role: 'assistant', text: replyText.trim() });
+          aiChatHistory.push({ role: 'assistant', text: replyText || 'No response received.' });
         } catch (err) {
           aiChatHistory.pop();
           aiChatHistory.push({
@@ -1934,6 +2801,7 @@
               secondsReadAccumulator = 0;
               stats.minutesRead += 1;
               saveStats();
+              rewardPetForReadingMinute();
             }
             updateTimerUI();
           }
@@ -2004,7 +2872,7 @@
             playGentleChime('end');
             stats.breaksTaken += 1;
             saveStats();
-          }
+            rewardPetForEyeBreak();
         }, 1000);
       }
 
@@ -2432,6 +3300,44 @@
         document.querySelectorAll('.ai-quick-chip').forEach((chip) => {
           chip.addEventListener('click', () => sendAiChatMessage(chip.dataset.prompt));
         });
+
+        // Interactive Quiz Builder controls
+        const quizBuilderEl = document.getElementById('ai-quiz-builder');
+        document.getElementById('ai-quiz-toggle-btn').addEventListener('click', () => {
+          quizBuilderEl.classList.toggle('hidden');
+        });
+        document.getElementById('ai-close-quiz-builder-btn').addEventListener('click', () => {
+          quizBuilderEl.classList.add('hidden');
+        });
+
+        document.querySelectorAll('.quiz-mode-btn').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            selectedQuizMode = btn.dataset.quizMode;
+            document.querySelectorAll('.quiz-mode-btn').forEach((b) => {
+              const active = b.dataset.quizMode === selectedQuizMode;
+              b.className = active
+                ? 'quiz-mode-btn px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-accent text-zinc-950 transition'
+                : 'quiz-mode-btn px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-surface border border-subtle text-main transition';
+            });
+          });
+        });
+
+        document.querySelectorAll('.quiz-count-btn').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            selectedQuizCount = Number(btn.dataset.quizCount) || 3;
+            document.querySelectorAll('.quiz-count-btn').forEach((b) => {
+              const active = Number(b.dataset.quizCount) === selectedQuizCount;
+              b.className = active
+                ? 'quiz-count-btn px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-accent-soft text-accent border border-amber-500/30 transition'
+                : 'quiz-count-btn px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-surface border border-subtle text-muted transition';
+            });
+          });
+        });
+
+        document.getElementById('ai-generate-quiz-btn').addEventListener('click', () => {
+          generateInteractiveQuiz(selectedQuizMode, selectedQuizCount);
+        });
+
         document.getElementById('ai-chat-form').addEventListener('submit', (e) => {
           e.preventDefault();
           const inp = document.getElementById('ai-chat-input');
@@ -2605,6 +3511,63 @@
             renderCurrentPage({ preserveScroll: true, silent: true });
           }, 220);
         });
+
+        // ---- Cute AI Tamagotchi Controls ----
+        const petModal = document.getElementById('pet-modal');
+        const openPetModal = () => {
+          updatePetUI();
+          petModal.classList.remove('hidden');
+        };
+        const closePetModal = () => petModal.classList.add('hidden');
+
+        document.getElementById('lib-pet-avatar-btn').addEventListener('click', openPetModal);
+        document.getElementById('lib-pet-open-btn').addEventListener('click', openPetModal);
+        document.getElementById('reader-pet-btn').addEventListener('click', openPetModal);
+        document.getElementById('floating-pet-buddy').addEventListener('click', openPetModal);
+        document.getElementById('close-pet-modal-btn').addEventListener('click', closePetModal);
+        petModal.addEventListener('click', (e) => {
+          if (e.target === petModal) closePetModal();
+        });
+
+        document.getElementById('lib-pet-feed-btn').addEventListener('click', () => handlePetAction('feed'));
+        document.getElementById('lib-pet-pat-btn').addEventListener('click', () => handlePetAction('pat'));
+        document.getElementById('pet-btn-feed').addEventListener('click', () => handlePetAction('feed'));
+        document.getElementById('pet-btn-pat').addEventListener('click', () => handlePetAction('pat'));
+        document.getElementById('pet-btn-play').addEventListener('click', () => handlePetAction('spark'));
+        document.getElementById('pet-btn-nap').addEventListener('click', () => handlePetAction('nap'));
+        document.getElementById('pet-stage-click').addEventListener('click', () => handlePetAction('pat'));
+
+        document.getElementById('pet-name-input').addEventListener('change', (e) => {
+          const clean = e.target.value.trim().slice(0, 16);
+          petState.name = clean || 'Mochi';
+          savePetState();
+          updatePetUI();
+          showToast(`Renamed pet to ${petState.name}!`);
+        });
+
+        document.querySelectorAll('.pet-color-btn').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            petState.color = btn.dataset.petColor;
+            savePetState();
+            updatePetUI();
+          });
+        });
+
+        document.getElementById('pet-float-toggle-btn').addEventListener('click', () => {
+          petState.floatInReader = !petState.floatInReader;
+          savePetState();
+          updatePetUI();
+          showToast(petState.floatInReader ? `${petState.name} will float in reader` : 'Floating reader pet hidden');
+        });
+
+        document.getElementById('pet-chat-form').addEventListener('submit', (e) => {
+          e.preventDefault();
+          const inp = document.getElementById('pet-chat-input');
+          const msg = inp.value.trim();
+          if (!msg) return;
+          inp.value = '';
+          talkToPetAI(msg, 'chat');
+        });
       }
 
       /* -------------------------------------------------------------------
@@ -2613,6 +3576,7 @@
       async function bootstrap() {
         applyEyeSettings();
         updateStatsUI();
+        updatePetUI();
         bindEvents();
 
         try {
