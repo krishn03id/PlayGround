@@ -1,0 +1,2632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <title>EyeSafe Reader — Offline PDF Study & Novel Reader</title>
+
+  <!-- Tailwind CSS for responsive, mobile-first styling -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- PDF.js library for client-side PDF rendering and text extraction -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+  <!-- Clean, eye-friendly fonts: Inter for UI, Merriweather for comfortable long-form reading -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:ital,wght@0,300;0,400;0,700;1,400&display=swap" rel="stylesheet" />
+
+  <style>
+    /* Base typography & smooth theme transitions */
+    :root {
+      --bg-app: #141517;
+      --bg-surface: #1e2024;
+      --bg-elevated: #282b30;
+      --text-primary: #e4e2dd;
+      --text-secondary: #9ca0a8;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --accent: #d99b52;
+      --accent-soft: rgba(217, 155, 82, 0.16);
+      --reader-bg: #121315;
+    }
+
+    /* Theme palettes */
+    body.theme-dark {
+      --bg-app: #141517;
+      --bg-surface: #1e2024;
+      --bg-elevated: #282b30;
+      --text-primary: #e2e0db;
+      --text-secondary: #9a9ea6;
+      --border-subtle: rgba(255, 255, 255, 0.09);
+      --accent: #d99b52;
+      --accent-soft: rgba(217, 155, 82, 0.16);
+      --reader-bg: #121315;
+    }
+
+    body.theme-midnight {
+      --bg-app: #060607;
+      --bg-surface: #101114;
+      --bg-elevated: #191b20;
+      --text-primary: #c9c7c1;
+      --text-secondary: #7c8089;
+      --border-subtle: rgba(255, 255, 255, 0.07);
+      --accent: #c78b45;
+      --accent-soft: rgba(199, 139, 69, 0.15);
+      --reader-bg: #000000;
+    }
+
+    body.theme-sepia {
+      --bg-app: #f4ecd8;
+      --bg-surface: #ece1c6;
+      --bg-elevated: #e3d5b4;
+      --text-primary: #3b2f21;
+      --text-secondary: #6e5c47;
+      --border-subtle: rgba(59, 47, 33, 0.12);
+      --accent: #9c5e24;
+      --accent-soft: rgba(156, 94, 36, 0.14);
+      --reader-bg: #f6efde;
+    }
+
+    body.theme-light {
+      --bg-app: #f6f6f4;
+      --bg-surface: #ffffff;
+      --bg-elevated: #ededeb;
+      --text-primary: #1f2226;
+      --text-secondary: #5c626b;
+      --border-subtle: rgba(0, 0, 0, 0.09);
+      --accent: #b8742a;
+      --accent-soft: rgba(184, 116, 42, 0.12);
+      --reader-bg: #f9f9f7;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-app);
+      color: var(--text-primary);
+      overflow-x: hidden;
+      transition: background-color 0.25s ease, color 0.25s ease;
+    }
+
+    .bg-app { background-color: var(--bg-app); }
+    .bg-surface { background-color: var(--bg-surface); }
+    .bg-elevated { background-color: var(--bg-elevated); }
+    .bg-reader { background-color: var(--reader-bg); }
+    .text-main { color: var(--text-primary); }
+    .text-muted { color: var(--text-secondary); }
+    .border-subtle { border-color: var(--border-subtle); }
+    .text-accent { color: var(--accent); }
+    .bg-accent { background-color: var(--accent); }
+    .bg-accent-soft { background-color: var(--accent-soft); }
+
+    .font-reading {
+      font-family: 'Merriweather', Georgia, serif;
+    }
+
+    /* Smart PDF Canvas Eye-Protection Filters per theme */
+    body.theme-dark #pdf-canvas {
+      filter: invert(0.89) hue-rotate(180deg) contrast(0.92) brightness(0.92);
+    }
+    body.theme-midnight #pdf-canvas {
+      filter: invert(0.95) hue-rotate(180deg) contrast(0.88) brightness(0.82);
+    }
+    body.theme-sepia #pdf-canvas {
+      filter: sepia(0.35) brightness(0.95) contrast(0.96);
+    }
+    body.theme-light #pdf-canvas {
+      filter: brightness(0.97) contrast(0.98);
+    }
+
+    /* Eye protection global overlays (Blue-light warmth & Extra Dim) */
+    #warmth-overlay {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 9990;
+      background-color: #ff9c33;
+      mix-blend-mode: multiply;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    #dimmer-overlay {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 9991;
+      background-color: #000000;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    /* Smooth HUD hide/show in immersive reading mode */
+    .hud-top {
+      transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s ease;
+    }
+    .hud-bottom {
+      transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s ease;
+    }
+    .hud-hidden .hud-top {
+      transform: translateY(-110%);
+      opacity: 0;
+      pointer-events: none;
+    }
+    .hud-hidden .hud-bottom {
+      transform: translateY(110%);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* Breathing circle animation for the 20-second eye rest break */
+    @keyframes breathe {
+      0%, 100% { transform: scale(0.92); opacity: 0.45; }
+      50% { transform: scale(1.12); opacity: 0.85; }
+    }
+    .animate-breathe {
+      animation: breathe 6s ease-in-out infinite;
+    }
+
+    /* Custom subtle range slider styling */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      background: var(--bg-elevated);
+      height: 6px;
+      border-radius: 999px;
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      border: 2px solid var(--bg-surface);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+    }
+
+    /* Subtle scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(150, 150, 150, 0.25);
+      border-radius: 999px;
+    }
+
+    /* Safe horizontal + vertical scrolling when zoomed in (zero left-edge clipping) */
+    #reading-stage {
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+    }
+
+    #reading-stage.pinch-enabled {
+      touch-action: pan-x pan-y;
+    }
+
+    /* max-content grows horizontally with zoomed canvas from x=0 while min-width:100% centers normal pages */
+    #canvas-wrapper {
+      width: max-content;
+      min-width: 100%;
+      display: flex;
+      justify-content: center;
+      padding: 8px 10px;
+    }
+
+    #pdf-canvas {
+      display: block;
+      transform-origin: center top;
+      will-change: transform;
+    }
+  </style>
+</head>
+<body class="theme-dark min-h-screen flex flex-col selection:bg-amber-500/30">
+
+  <!-- Global Eye Protection Overlays -->
+  <div id="warmth-overlay" aria-hidden="true"></div>
+  <div id="dimmer-overlay" aria-hidden="true"></div>
+
+  <!-- ===================================================================== -->
+  <!-- VIEW 1: LIBRARY / HOME SCREEN                                         -->
+  <!-- ===================================================================== -->
+  <div id="library-view" class="flex-1 flex flex-col w-full max-w-4xl mx-auto px-4 sm:px-6 py-5 sm:py-8">
+    <!-- Header -->
+    <header class="flex items-center justify-between gap-3 mb-6">
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-2xl bg-accent-soft flex items-center justify-center text-accent shrink-0">
+          <!-- Book Icon -->
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-main leading-tight">EyeSafe Reader</h1>
+          <p class="text-xs sm:text-sm text-muted">Offline PDF memory • 20-20-20 Eye Care</p>
+        </div>
+      </div>
+
+      <button id="lib-eye-settings-btn" type="button" class="p-3 rounded-2xl bg-surface border border-subtle text-main hover:bg-elevated active:scale-95 transition flex items-center gap-2 text-sm font-medium" aria-label="Eye Protection Settings">
+        <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        <span class="hidden sm:inline">Eye Care</span>
+      </button>
+    </header>
+
+    <!-- Daily Stats Strip -->
+    <section class="grid grid-cols-3 gap-2.5 sm:gap-4 mb-6">
+      <div class="bg-surface border border-subtle rounded-2xl p-3.5 sm:p-4">
+        <p class="text-[11px] sm:text-xs text-muted uppercase tracking-wider font-medium">Read Today</p>
+        <p id="stat-minutes" class="text-lg sm:text-2xl font-bold text-main mt-1">0 min</p>
+      </div>
+      <div class="bg-surface border border-subtle rounded-2xl p-3.5 sm:p-4">
+        <p class="text-[11px] sm:text-xs text-muted uppercase tracking-wider font-medium">Eye Breaks</p>
+        <p id="stat-breaks" class="text-lg sm:text-2xl font-bold text-accent mt-1">0</p>
+      </div>
+      <div class="bg-surface border border-subtle rounded-2xl p-3.5 sm:p-4">
+        <p class="text-[11px] sm:text-xs text-muted uppercase tracking-wider font-medium">Saved Books</p>
+        <p id="stat-books" class="text-lg sm:text-2xl font-bold text-main mt-1">0</p>
+      </div>
+    </section>
+
+    <!-- Upload PDF Card -->
+    <section id="upload-dropzone" class="bg-surface border-2 border-dashed border-subtle hover:border-amber-500/50 rounded-3xl p-6 sm:p-8 text-center transition mb-6 cursor-pointer relative">
+      <input type="file" id="pdf-file-input" accept="application/pdf,.pdf" class="hidden" />
+      <div class="w-14 h-14 mx-auto rounded-2xl bg-accent-soft text-accent flex items-center justify-center mb-3">
+        <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+        </svg>
+      </div>
+      <h2 class="text-base sm:text-lg font-semibold text-main">Upload Your PDF Book or Notes</h2>
+      <p class="text-xs sm:text-sm text-muted mt-1 max-w-md mx-auto">
+        Saved safely in your device's local browser storage so you don't need to re-upload every time. Works offline.
+      </p>
+      <div class="mt-4 flex flex-wrap items-center justify-center gap-3">
+        <button id="select-pdf-btn" type="button" class="px-5 py-3 rounded-xl bg-accent text-zinc-950 font-semibold text-sm shadow-sm active:scale-95 transition">
+          Choose PDF File
+        </button>
+        <button id="load-demo-btn" type="button" class="px-4 py-3 rounded-xl bg-elevated text-main font-medium text-sm border border-subtle hover:opacity-90 active:scale-95 transition">
+          Try Built-in Sample Book
+        </button>
+      </div>
+      <!-- Upload progress indicator -->
+      <div id="upload-status" class="hidden mt-4 text-xs font-medium text-accent">
+        Saving book to local storage...
+      </div>
+    </section>
+
+    <!-- Saved Library List -->
+    <section class="flex-1 flex flex-col">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-sm sm:text-base font-semibold text-main">My Local Shelf</h3>
+        <span id="storage-usage-label" class="text-xs text-muted">Stored locally</span>
+      </div>
+
+      <div id="books-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+        <!-- Populated dynamically from IndexedDB -->
+      </div>
+
+      <div id="empty-library-msg" class="hidden bg-surface/60 border border-subtle rounded-2xl p-8 text-center">
+        <p class="text-sm text-muted">No books on your shelf yet.</p>
+        <p class="text-xs text-muted mt-1">Upload a PDF above or open the built-in sample to test dark mode &amp; the 20-minute eye timer.</p>
+      </div>
+    </section>
+
+    <!-- Helpful Eye-Safe Tip Footer -->
+    <footer class="mt-8 pt-4 border-t border-subtle text-center text-xs text-muted">
+      Tip: Tap the center of any page while reading to toggle distraction-free Full Mode. Pinch with two fingers to zoom cleanly, or tap the zoom % to reset to Fit Width.
+    </footer>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- VIEW 2: IMMERSIVE READER VIEW                                         -->
+  <!-- ===================================================================== -->
+  <div id="reader-view" class="hidden fixed inset-0 flex flex-col bg-reader z-20">
+
+    <!-- TOP HUD BAR -->
+    <header class="hud-top fixed top-0 left-0 right-0 z-30 bg-surface/95 backdrop-blur-md border-b border-subtle px-2.5 sm:px-4 py-2 flex items-center justify-between gap-2">
+      <!-- Left: Back & Book Title -->
+      <div class="flex items-center gap-2 min-w-0">
+        <button id="back-to-lib-btn" type="button" class="p-2.5 rounded-xl hover:bg-elevated text-main active:scale-95 transition shrink-0" aria-label="Back to Library" title="Back to Library">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <div class="min-w-0">
+          <h2 id="reader-book-title" class="text-sm font-semibold text-main truncate">Book Title</h2>
+          <p id="reader-page-subtitle" class="text-[11px] text-muted">Page 1 of 1</p>
+        </div>
+      </div>
+
+      <!-- Right: 20-Min Timer Pill + Controls -->
+      <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        <!-- 20-Minute Eye Care Countdown Pill -->
+        <button id="timer-pill-btn" type="button" class="px-2.5 sm:px-3 py-2 rounded-xl bg-accent-soft border border-amber-500/25 text-accent font-semibold text-xs sm:text-sm flex items-center gap-1.5 active:scale-95 transition" title="20-20-20 Eye Care Timer">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span id="timer-display" class="tabular-nums">20:00</span>
+        </button>
+
+        <!-- Toggle Page / Comfort Text View -->
+        <button id="view-mode-btn" type="button" class="p-2.5 rounded-xl bg-elevated/70 hover:bg-elevated text-main active:scale-95 transition flex items-center gap-1.5 text-xs font-medium" title="Switch between PDF Page View and Phone-Friendly Text Mode">
+          <svg id="view-mode-icon" class="w-4 h-4 text-accent" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h10" />
+          </svg>
+          <span id="view-mode-label" class="hidden md:inline">Text Mode</span>
+        </button>
+
+        <!-- Bookmark Current Page -->
+        <button id="bookmark-btn" type="button" class="p-2.5 rounded-xl hover:bg-elevated text-main active:scale-95 transition" title="Bookmark this page" aria-label="Bookmark">
+          <svg id="bookmark-icon" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+          </svg>
+        </button>
+
+        <!-- Eye Protection & Display Settings -->
+        <button id="reader-settings-btn" type="button" class="p-2.5 rounded-xl hover:bg-elevated text-main active:scale-95 transition" title="Eye Protection & Display Settings" aria-label="Display Settings">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+        </button>
+
+        <!-- Fullscreen Toggle -->
+        <button id="fullscreen-btn" type="button" class="p-2.5 rounded-xl hover:bg-elevated text-main active:scale-95 transition" title="Toggle Full Mode" aria-label="Full Mode">
+          <svg id="fullscreen-icon" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- MAIN READING STAGE (Block scroll container prevents left-side clipping on zoom) -->
+    <main id="reading-stage" class="flex-1 overflow-auto pt-16 pb-28 relative pinch-enabled">
+      <!-- Subtle Live Zoom Level Badge -->
+      <div id="zoom-badge" class="fixed top-20 left-1/2 -translate-x-1/2 z-30 px-3 py-1 rounded-full bg-surface/95 border border-subtle text-accent text-xs font-semibold tabular-nums shadow-md opacity-0 pointer-events-none transition-opacity duration-200">
+        100%
+      </div>
+
+      <!-- Loading spinner (only shown when changing pages, not during zoom) -->
+      <div id="page-loader" class="hidden fixed inset-0 z-20 pointer-events-none flex flex-col items-center justify-center gap-3">
+        <div class="bg-surface/90 border border-subtle rounded-2xl px-5 py-4 flex flex-col items-center gap-2.5 shadow-xl">
+          <div class="w-8 h-8 rounded-full border-amber-500/30 border-t-amber-500 animate-spin" style="border-width: 3px; border-style: solid;"></div>
+          <p class="text-xs text-muted">Loading page...</p>
+        </div>
+      </div>
+
+      <!-- MODE A: PDF Canvas Page Container (Safe left-to-right scrolling at any zoom!) -->
+      <div id="canvas-wrapper">
+        <canvas id="pdf-canvas" class="rounded-lg shadow-xl"></canvas>
+      </div>
+
+      <!-- MODE B: Eye-Comfort Reflowable Text Container (Great for Phones!) -->
+      <article id="text-reflow-wrapper" class="hidden w-full max-w-2xl mx-auto py-4 px-4 sm:px-6 font-reading text-main">
+        <div id="text-reflow-content" class="space-y-4"></div>
+      </article>
+    </main>
+
+    <!-- Floating Minimal Pill when HUD is Hidden -->
+    <button id="show-hud-pill" type="button" class="hidden fixed bottom-4 right-4 z-30 px-3.5 py-2 rounded-full bg-surface/85 backdrop-blur border border-subtle text-xs text-muted shadow-lg flex items-center gap-2">
+      <span id="hud-hidden-timer" class="tabular-nums text-accent font-semibold">20:00</span>
+      <span>• Menu</span>
+    </button>
+
+    <!-- BOTTOM HUD NAVIGATION BAR -->
+    <footer class="hud-bottom fixed bottom-0 left-0 right-0 z-30 bg-surface/95 backdrop-blur-md border-t border-subtle px-3 sm:px-5 py-2.5">
+      <div class="max-w-3xl mx-auto flex flex-col gap-2">
+        <!-- Progress Slider -->
+        <div class="flex items-center gap-3">
+          <span id="page-current-badge" class="text-xs font-medium text-muted tabular-nums min-w-[2.5rem] text-right">1</span>
+          <input type="range" id="page-slider" min="1" max="1" value="1" class="flex-1" aria-label="Jump to page" />
+          <span id="page-total-badge" class="text-xs font-medium text-muted tabular-nums min-w-[2.5rem]">1</span>
+        </div>
+
+        <!-- Controls Row -->
+        <div class="flex items-center justify-between gap-1.5 sm:gap-2">
+          <button id="prev-page-btn" type="button" class="px-3 sm:px-4 py-2.5 rounded-xl bg-elevated text-main font-medium text-xs sm:text-sm flex items-center gap-1 active:scale-95 transition disabled:opacity-40">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            <span>Prev</span>
+          </button>
+
+          <!-- Center Quick Tools: TTS Listen + Go To + Zoom (- / 100% / +) + Hidden AI Chat -->
+          <div class="flex items-center gap-1 sm:gap-1.5">
+            <button id="tts-btn" type="button" class="px-2.5 sm:px-3 py-2.5 rounded-xl bg-elevated/80 hover:bg-elevated text-main text-xs font-medium flex items-center gap-1 active:scale-95 transition" title="Read Aloud (Rest Your Eyes)">
+              <svg id="tts-icon" class="w-4 h-4 text-accent" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+              </svg>
+              <span id="tts-label" class="hidden sm:inline">Listen</span>
+            </button>
+
+            <button id="jump-page-btn" type="button" class="px-2.5 sm:px-3 py-2.5 rounded-xl bg-elevated/80 hover:bg-elevated text-main text-xs font-medium active:scale-95 transition" title="Go to Page / Bookmarks">
+              Go To
+            </button>
+
+            <button id="zoom-out-btn" type="button" class="px-2.5 py-2.5 rounded-xl bg-elevated/80 hover:bg-elevated text-main text-xs font-bold active:scale-95 transition" title="Zoom Out / Smaller Font" aria-label="Zoom Out">A-</button>
+
+            <button id="zoom-reset-btn" type="button" class="px-2 py-2.5 rounded-xl bg-elevated/60 hover:bg-elevated text-accent text-[11px] font-semibold tabular-nums active:scale-95 transition" title="Tap to Reset Zoom to 100% Fit Width">100%</button>
+
+            <button id="zoom-in-btn" type="button" class="px-2.5 py-2.5 rounded-xl bg-elevated/80 hover:bg-elevated text-main text-xs font-bold active:scale-95 transition" title="Zoom In / Larger Font" aria-label="Zoom In">A+</button>
+
+            <!-- Discreet Page-Context AI Chat Trigger (completely hidden unless enabled in hidden micro-setting) -->
+            <button id="ai-chat-trigger-btn" type="button" class="hidden p-2.5 rounded-xl bg-elevated/60 hover:bg-elevated text-muted hover:text-accent active:scale-95 transition" title="Page Context Chat" aria-label="Page Context Chat">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+            </button>
+          </div>
+
+          <button id="next-page-btn" type="button" class="px-3 sm:px-4 py-2.5 rounded-xl bg-accent text-zinc-950 font-semibold text-xs sm:text-sm flex items-center gap-1 active:scale-95 transition disabled:opacity-40">
+            <span>Next</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL 1: EYE PROTECTION & DISPLAY SETTINGS SHEET                      -->
+  <!-- ===================================================================== -->
+  <div id="settings-modal" class="hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-surface border border-subtle w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-5">
+        <h3 class="text-base font-bold text-main flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-accent"></span>
+          Eye Protection &amp; Theme
+        </h3>
+        <button id="close-settings-btn" type="button" class="p-2 rounded-xl hover:bg-elevated text-muted">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Theme Selector -->
+      <div class="mb-5">
+        <label class="text-xs font-semibold uppercase tracking-wider text-muted block mb-2.5">Reading Theme</label>
+        <div class="grid grid-cols-4 gap-2">
+          <button type="button" data-theme="dark" class="theme-option p-2.5 rounded-xl border-2 text-center transition">
+            <span class="block w-6 h-6 mx-auto rounded-full bg-[#181a1e] border border-zinc-600 mb-1"></span>
+            <span class="text-xs font-medium">Dark</span>
+          </button>
+          <button type="button" data-theme="midnight" class="theme-option p-2.5 rounded-xl border-2 text-center transition">
+            <span class="block w-6 h-6 mx-auto rounded-full bg-black border border-zinc-700 mb-1"></span>
+            <span class="text-xs font-medium">OLED</span>
+          </button>
+          <button type="button" data-theme="sepia" class="theme-option p-2.5 rounded-xl border-2 text-center transition">
+            <span class="block w-6 h-6 mx-auto rounded-full bg-[#efe3c8] border border-amber-700/40 mb-1"></span>
+            <span class="text-xs font-medium">Sepia</span>
+          </button>
+          <button type="button" data-theme="light" class="theme-option p-2.5 rounded-xl border-2 text-center transition">
+            <span class="block w-6 h-6 mx-auto rounded-full bg-[#f7f7f5] border border-zinc-300 mb-1"></span>
+            <span class="text-xs font-medium">Paper</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Blue-Light Warmth Slider -->
+      <div class="mb-5">
+        <div class="flex justify-between text-xs mb-2">
+          <span class="font-medium text-main">Warm Blue-Light Filter</span>
+          <span id="warmth-val" class="text-accent font-semibold">20%</span>
+        </div>
+        <input type="range" id="warmth-slider" min="0" max="60" value="20" class="w-full" />
+        <p class="text-[11px] text-muted mt-1">Softens harsh blue glare for late-night reading before sleep.</p>
+      </div>
+
+      <!-- Extra Dim Slider -->
+      <div class="mb-5">
+        <div class="flex justify-between text-xs mb-2">
+          <span class="font-medium text-main">Extra Dim (Night Brightness)</span>
+          <span id="dimmer-val" class="text-accent font-semibold">0%</span>
+        </div>
+        <input type="range" id="dimmer-slider" min="0" max="65" value="0" class="w-full" />
+        <p class="text-[11px] text-muted mt-1">Lowers screen brightness even further than phone minimum.</p>
+      </div>
+
+      <!-- Reflow Text Font Size & Spacing -->
+      <div class="mb-5 pt-4 border-t border-subtle">
+        <div class="flex justify-between text-xs mb-2">
+          <span class="font-medium text-main">Text Mode Font Size</span>
+          <span id="font-size-val" class="text-accent font-semibold">18px</span>
+        </div>
+        <input type="range" id="font-size-slider" min="14" max="28" value="18" class="w-full" />
+
+        <div class="flex justify-between text-xs mt-4 mb-2">
+          <span class="font-medium text-main">Line Spacing</span>
+          <span id="line-height-val" class="text-accent font-semibold">1.8</span>
+        </div>
+        <input type="range" id="line-height-slider" min="1.4" max="2.4" step="0.1" value="1.8" class="w-full" />
+      </div>
+
+      <!-- Gesture Option: Two-Finger Pinch to Zoom -->
+      <div class="flex items-center justify-between py-3 mb-4 border-t border-subtle">
+        <div>
+          <span class="text-xs font-medium text-main block">Two-Finger Pinch Zoom</span>
+          <span class="text-[11px] text-muted">Pinch in/out to zoom PDF or resize text</span>
+        </div>
+        <button id="pinch-zoom-toggle-btn" type="button" class="px-3 py-1.5 rounded-lg bg-accent-soft text-accent text-xs font-semibold active:scale-95 transition">
+          ON
+        </button>
+      </div>
+
+      <button id="done-settings-btn" type="button" class="w-full py-3 rounded-xl bg-accent text-zinc-950 font-semibold text-sm active:scale-95 transition">
+        Done
+      </button>
+
+      <!-- Ultra-subtle, barely-visible micro-setting trigger tucked at the bottom -->
+      <div class="mt-3 flex items-center justify-between px-1">
+        <span class="text-[10px] text-muted/30 select-none">EyeSafe local</span>
+        <button id="secret-ai-settings-btn" type="button" class="text-[10px] text-muted/30 hover:text-muted/75 px-2 py-1 rounded transition select-none" title="Advanced">
+          · · ·
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL 2: 20-20-20 EYE CARE TIMER SETTINGS                             -->
+  <!-- ===================================================================== -->
+  <div id="timer-modal" class="hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-surface border border-subtle w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-base font-bold text-main">20-20-20 Eye Care Timer</h3>
+        <button id="close-timer-btn" type="button" class="p-2 rounded-xl hover:bg-elevated text-muted">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="text-center bg-elevated rounded-2xl p-5 mb-4">
+        <p class="text-xs text-muted uppercase tracking-wider">Next 20-Second Eye Rest In</p>
+        <p id="modal-timer-readout" class="text-4xl font-bold text-accent tabular-nums mt-1">20:00</p>
+      </div>
+
+      <!-- Interval Picker -->
+      <div class="flex items-center justify-between mb-4">
+        <span class="text-xs font-medium text-muted">Break Interval</span>
+        <div class="flex items-center gap-1.5">
+          <button type="button" data-interval="10" class="interval-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-elevated text-main">10m</button>
+          <button type="button" data-interval="15" class="interval-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-elevated text-main">15m</button>
+          <button type="button" data-interval="20" class="interval-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-accent text-zinc-950">20m</button>
+          <button type="button" data-interval="30" class="interval-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-elevated text-main">30m</button>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="grid grid-cols-2 gap-2.5 mb-3">
+        <button id="toggle-timer-pause-btn" type="button" class="py-2.5 rounded-xl bg-elevated text-main font-medium text-xs sm:text-sm active:scale-95 transition">
+          Pause Timer
+        </button>
+        <button id="reset-timer-btn" type="button" class="py-2.5 rounded-xl bg-elevated text-main font-medium text-xs sm:text-sm active:scale-95 transition">
+          Reset Timer
+        </button>
+      </div>
+
+      <div class="flex items-center gap-2.5">
+        <button id="sound-toggle-btn" type="button" class="px-3.5 py-2.5 rounded-xl bg-elevated text-muted text-xs font-medium active:scale-95 transition">
+          Sound: ON
+        </button>
+        <button id="test-rest-btn" type="button" class="flex-1 py-2.5 rounded-xl bg-accent text-zinc-950 font-semibold text-xs sm:text-sm active:scale-95 transition">
+          Take 20s Break Now
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL 3: 20-SECOND EYE REST OVERLAY                                   -->
+  <!-- ===================================================================== -->
+  <div id="eye-rest-overlay" class="hidden fixed inset-0 z-50 bg-zinc-950/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center">
+    <div class="relative w-36 h-36 flex items-center justify-center mb-6">
+      <div class="absolute inset-0 rounded-full bg-amber-500/15 animate-breathe"></div>
+      <svg class="w-32 h-32 -rotate-90" viewBox="0 0 120 120">
+        <circle cx="60" cy="60" r="52" stroke="rgba(255,255,255,0.1)" stroke-width="6" fill="none" />
+        <circle id="rest-progress-ring" cx="60" cy="60" r="52" stroke="#d99b52" stroke-width="6" stroke-linecap="round" fill="none" stroke-dasharray="326.72" stroke-dashoffset="0" style="transition: stroke-dashoffset 0.9s linear;" />
+      </svg>
+      <span id="rest-countdown-num" class="absolute text-4xl font-bold text-amber-300 tabular-nums">20</span>
+    </div>
+
+    <h2 id="rest-title" class="text-2xl font-bold text-zinc-100 mb-2">Rest Your Eyes</h2>
+    <p id="rest-instruction" class="text-sm text-zinc-300 max-w-md leading-relaxed mb-8">
+      Look away from the screen at a wall or object about <strong class="text-amber-300">20 feet away</strong>. Blink slowly 5 times and relax your shoulders.
+    </p>
+
+    <button id="continue-reading-btn" type="button" disabled class="w-full max-w-xs py-3.5 rounded-2xl bg-amber-500 text-zinc-950 font-semibold text-sm transition disabled:opacity-40 disabled:cursor-not-allowed active:scale-95">
+      Wait 20 seconds...
+    </button>
+
+    <button id="skip-rest-btn" type="button" class="mt-4 text-xs text-zinc-500 hover:text-zinc-300 py-2 px-4 transition">
+      Skip rest early
+    </button>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL 4: JUMP TO PAGE & BOOKMARKS                                     -->
+  <!-- ===================================================================== -->
+  <div id="jump-modal" class="hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-surface border border-subtle w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl max-h-[80vh] flex flex-col">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-base font-bold text-main">Go To Page &amp; Bookmarks</h3>
+        <button id="close-jump-btn" type="button" class="p-2 rounded-xl hover:bg-elevated text-muted">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <form id="jump-page-form" class="flex gap-2 mb-5">
+        <input type="number" id="jump-page-input" min="1" placeholder="Page number..." class="flex-1 px-4 py-2.5 rounded-xl bg-elevated border border-subtle text-main text-sm outline-none focus:border-amber-500" />
+        <button type="submit" class="px-5 py-2.5 rounded-xl bg-accent text-zinc-950 font-semibold text-sm active:scale-95 transition">
+          Go
+        </button>
+      </form>
+
+      <h4 class="text-xs font-semibold uppercase tracking-wider text-muted mb-2">Saved Bookmarks</h4>
+      <div id="bookmarks-list" class="overflow-y-auto space-y-2 flex-1">
+        <!-- Populated dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL 5: CUSTOM CONFIRM DIALOG                                        -->
+  <!-- ===================================================================== -->
+  <div id="confirm-modal" class="hidden fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-surface border border-subtle w-full max-w-xs rounded-3xl p-5 shadow-2xl">
+      <h3 id="confirm-title" class="text-base font-bold text-main mb-1.5">Confirm</h3>
+      <p id="confirm-msg" class="text-xs sm:text-sm text-muted mb-5 leading-relaxed">Are you sure?</p>
+      <div class="flex gap-2.5">
+        <button id="confirm-cancel-btn" type="button" class="flex-1 py-2.5 rounded-xl bg-elevated text-main font-medium text-sm active:scale-95 transition">
+          Cancel
+        </button>
+        <button id="confirm-ok-btn" type="button" class="flex-1 py-2.5 rounded-xl bg-red-500/90 text-white font-semibold text-sm active:scale-95 transition">
+          Remove
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL 6: DISCREET CUSTOM AI CONFIGURATION                             -->
+  <!-- ===================================================================== -->
+  <div id="ai-config-modal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-surface border border-subtle w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-sm font-bold text-main">Custom AI Page Companion</h3>
+        <button id="close-ai-config-btn" type="button" class="p-2 rounded-xl hover:bg-elevated text-muted">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Enable / Hide Toggle -->
+      <div class="flex items-center justify-between p-3 rounded-2xl bg-elevated mb-4">
+        <div>
+          <p class="text-xs font-semibold text-main">Show Chat Button in Reader</p>
+          <p class="text-[11px] text-muted">Keep OFF to hide AI completely from the UI</p>
+        </div>
+        <button id="ai-enable-toggle-btn" type="button" class="px-3 py-1.5 rounded-lg bg-surface border border-subtle text-xs font-semibold text-muted active:scale-95 transition">
+          OFF
+        </button>
+      </div>
+
+      <!-- Provider Type -->
+      <div class="mb-3.5">
+        <label class="text-[11px] font-semibold uppercase tracking-wider text-muted block mb-1.5">API Mode</label>
+        <div class="grid grid-cols-2 gap-2">
+          <button type="button" data-provider="custom" class="ai-provider-btn py-2 px-3 rounded-xl border text-xs font-semibold transition">
+            Custom / OpenAI API
+          </button>
+          <button type="button" data-provider="gemini" class="ai-provider-btn py-2 px-3 rounded-xl border text-xs font-semibold transition">
+            Gemini API
+          </button>
+        </div>
+      </div>
+
+      <!-- Custom Endpoint (only shown for Custom / OpenAI-compatible API) -->
+      <div id="ai-endpoint-group" class="mb-3.5">
+        <label for="ai-endpoint-input" class="text-[11px] font-medium text-muted block mb-1">Endpoint URL (OpenAI, OpenRouter, Groq, Ollama...)</label>
+        <input type="url" id="ai-endpoint-input" placeholder="https://api.openai.com/v1/chat/completions" class="w-full px-3.5 py-2.5 rounded-xl bg-elevated border border-subtle text-main text-xs outline-none focus:border-amber-500" />
+      </div>
+
+      <!-- Model Name -->
+      <div class="mb-3.5">
+        <label for="ai-model-input" class="text-[11px] font-medium text-muted block mb-1">Model Name</label>
+        <input type="text" id="ai-model-input" placeholder="gpt-4o-mini" class="w-full px-3.5 py-2.5 rounded-xl bg-elevated border border-subtle text-main text-xs outline-none focus:border-amber-500" />
+      </div>
+
+      <!-- API Key -->
+      <div class="mb-3.5">
+        <label for="ai-key-input" class="text-[11px] font-medium text-muted block mb-1">API Key <span id="ai-key-hint" class="text-muted/70">(stored only on this device)</span></label>
+        <input type="password" id="ai-key-input" placeholder="sk-... or your Gemini API key" autocomplete="off" class="w-full px-3.5 py-2.5 rounded-xl bg-elevated border border-subtle text-main text-xs outline-none focus:border-amber-500" />
+      </div>
+
+      <!-- System Prompt -->
+      <div class="mb-4">
+        <label for="ai-system-input" class="text-[11px] font-medium text-muted block mb-1">Assistant Instructions</label>
+        <textarea id="ai-system-input" rows="2" class="w-full px-3.5 py-2 rounded-xl bg-elevated border border-subtle text-main text-xs outline-none focus:border-amber-500 resize-none"></textarea>
+      </div>
+
+      <div class="flex gap-2">
+        <button id="save-ai-config-btn" type="button" class="flex-1 py-2.5 rounded-xl bg-accent text-zinc-950 font-semibold text-xs sm:text-sm active:scale-95 transition">
+          Save Settings
+        </button>
+        <button id="open-chat-from-config-btn" type="button" class="px-4 py-2.5 rounded-xl bg-elevated border border-subtle text-main font-medium text-xs sm:text-sm active:scale-95 transition">
+          Open Chat
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL 7: PAGE-CONTEXT AI CHAT DRAWER                                  -->
+  <!-- ===================================================================== -->
+  <div id="ai-chat-modal" class="hidden fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-surface border border-subtle w-full sm:max-w-lg h-[82vh] sm:h-[75vh] rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden">
+      <!-- Chat Header -->
+      <div class="px-4 py-3 border-b border-subtle flex items-center justify-between gap-2 shrink-0">
+        <div class="min-w-0">
+          <h3 class="text-sm font-bold text-main truncate">Page Context Chat</h3>
+          <p id="ai-context-status" class="text-[11px] text-accent truncate">Reading current page context...</p>
+        </div>
+        <div class="flex items-center gap-1 shrink-0">
+          <button id="ai-clear-chat-btn" type="button" class="p-2 rounded-xl hover:bg-elevated text-muted text-xs" title="Clear chat history">Clear</button>
+          <button id="ai-chat-gear-btn" type="button" class="p-2 rounded-xl hover:bg-elevated text-muted" title="AI Settings">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </button>
+          <button id="close-ai-chat-btn" type="button" class="p-2 rounded-xl hover:bg-elevated text-muted">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Prompt Chips -->
+      <div class="px-4 py-2 border-b border-subtle flex items-center gap-1.5 overflow-x-auto shrink-0">
+        <button type="button" data-prompt="Explain this page in simple words." class="ai-quick-chip px-3 py-1.5 rounded-full bg-elevated text-main text-[11px] font-medium whitespace-nowrap active:scale-95 transition">Explain simply</button>
+        <button type="button" data-prompt="Define any hard or unfamiliar words on this page." class="ai-quick-chip px-3 py-1.5 rounded-full bg-elevated text-main text-[11px] font-medium whitespace-nowrap active:scale-95 transition">Hard words</button>
+        <button type="button" data-prompt="Summarize the key points from this page in 3 bullet points." class="ai-quick-chip px-3 py-1.5 rounded-full bg-elevated text-main text-[11px] font-medium whitespace-nowrap active:scale-95 transition">Key points</button>
+        <button type="button" data-prompt="Ask me 2 quick practice questions based on this page." class="ai-quick-chip px-3 py-1.5 rounded-full bg-elevated text-main text-[11px] font-medium whitespace-nowrap active:scale-95 transition">Quiz me</button>
+      </div>
+
+      <!-- Messages Feed -->
+      <div id="ai-chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3 text-xs sm:text-sm">
+        <!-- Populated dynamically -->
+      </div>
+
+      <!-- Chat Input Bar -->
+      <form id="ai-chat-form" class="p-3 border-t border-subtle flex items-center gap-2 shrink-0 bg-surface">
+        <input type="text" id="ai-chat-input" placeholder="Ask about this page..." class="flex-1 px-4 py-2.5 rounded-xl bg-elevated border border-subtle text-main text-xs sm:text-sm outline-none focus:border-amber-500" />
+        <button id="ai-send-btn" type="submit" class="px-4 py-2.5 rounded-xl bg-accent text-zinc-950 font-semibold text-xs sm:text-sm active:scale-95 transition disabled:opacity-40">
+          Send
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 z-[60] px-4 py-2.5 rounded-2xl bg-elevated border border-subtle text-main text-xs sm:text-sm font-medium shadow-xl opacity-0 pointer-events-none transition-all duration-200 -translate-y-2">
+    Message
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- APPLICATION LOGIC                                                     -->
+  <!-- ===================================================================== -->
+  <script>
+    (function () {
+      'use strict';
+
+      // Configure PDF.js worker
+      if (window.pdfjsLib) {
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+          'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      }
+
+      /* -------------------------------------------------------------------
+         1. BUILT-IN SAMPLE BOOK
+         ------------------------------------------------------------------- */
+      const SAMPLE_DEMO_BOOK = {
+        id: 'demo-eyesafe-guide',
+        title: 'Sample: The Quiet Discipline (Sci-Fi & Study Demo)',
+        fileName: 'Built-in Sample • 3 Pages',
+        fileSize: 0,
+        isDemo: true,
+        currentPage: 1,
+        totalPages: 3,
+        bookmarks: [],
+        lastRead: Date.now(),
+        addedAt: Date.now(),
+        pages: [
+          {
+            heading: 'Chapter 1 — Before Dawn',
+            paragraphs: [
+              'At five in the morning, the world belongs to the people who are awake before the noise begins. Outside the narrow window, the sky was still a deep slate blue, cool enough that the lamp on the desk felt like a small hearth.',
+              'Inside the cloister, no one carried a glowing feed in their pocket. Ideas moved slowly, deliberately—written on thick paper, argued over calmly, and remembered for years instead of forgotten in ten seconds.',
+              'You can use this built-in sample to test EyeSafe Reader right now. Try switching between Dark, OLED, and Sepia themes from the sun icon above, or adjust the Warm Blue-Light Filter and Extra Dim sliders.',
+              'When you upload your own PDF (such as Anathem or exam notes), it is stored directly inside your browser\'s IndexedDB memory—meaning it stays saved on your device even after you close the tab.'
+            ]
+          },
+          {
+            heading: 'Chapter 2 — The 20-20-20 Rhythm',
+            paragraphs: [
+              'Human eyes were never designed to lock onto a bright rectangle twelve inches from the face for hours without rest. The tiny ciliary muscles inside the eye stay contracted the entire time you focus up close, while your blink rate drops by nearly half.',
+              'Look at the amber timer pill in the top-right corner of this reader. It counts down twenty minutes of active reading. The moment it reaches zero, a calm 20-second rest screen gently invites you to look across the room and blink slowly.',
+              'Tap the timer pill right now if you want to preview the 20-second eye rest screen immediately—no need to wait twenty minutes to see how it feels.',
+              'You can also tap the center of this page at any time to hide the top and bottom bars for pure, distraction-free Full Mode.'
+            ]
+          },
+          {
+            heading: 'Chapter 3 — Reading PDFs on a Phone',
+            paragraphs: [
+              'Traditional PDFs are formatted for wide printed pages, which forces phone readers to squint or endlessly pinch-and-zoom. That squinting is one of the fastest ways to trigger headaches and dry eyes.',
+              'For any PDF you upload, EyeSafe Reader gives you two viewing modes: Original Page View (which converts harsh white PDF pages into soft Dark or Sepia tones automatically) and Comfort Text Mode (which pulls out the text and lets you increase font size and line spacing).',
+              'And on nights when your eyes feel completely drained after studying all day, tap the "Listen" button in the bottom bar to hear the current page read aloud while you close your eyes.',
+              'Tap the back arrow at the top-left to return to your Local Shelf and upload your own PDF book.'
+            ]
+          }
+        ]
+      };
+
+      /* -------------------------------------------------------------------
+         2. STATE & PERSISTENT PREFERENCES
+         ------------------------------------------------------------------- */
+      const MIN_ZOOM = 0.85;
+      const MAX_ZOOM = 3.0;
+
+      const DEFAULT_PREFS = {
+        theme: 'dark',
+        warmth: 20,
+        dimmer: 0,
+        fontSize: 18,
+        lineHeight: 1.8,
+        zoom: 1.0,
+        viewMode: 'canvas', // 'canvas' | 'text'
+        intervalMin: 20,
+        soundEnabled: true,
+        pinchZoom: true,
+        aiEnabled: false,
+        aiProvider: 'custom', // 'custom' | 'gemini'
+        aiEndpoint: 'https://api.openai.com/v1/chat/completions',
+        aiModel: 'gpt-4o-mini',
+        aiApiKey: '',
+        aiSystemPrompt:
+          'You are a concise, calm study and reading companion. Answer using the provided book page context. Explain difficult concepts or unfamiliar words clearly.'
+      };
+
+      let prefs = loadPrefs();
+      // Ensure saved zoom stays within comfortable bounds
+      prefs.zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Number(prefs.zoom) || 1.0));
+
+      let stats = loadStats();
+      let db = null;
+
+      // Active book reading session state
+      let activeBook = null;
+      let activePdfDoc = null;
+      let currentPage = 1;
+      let totalPages = 1;
+      let renderTicket = 0;
+      let hudHidden = false;
+      let lastWindowWidth = window.innerWidth;
+
+      // 20-20-20 Timer state
+      let timerRemainingSec = prefs.intervalMin * 60;
+      let timerPaused = false;
+      let timerIntervalId = null;
+      let restCountdownId = null;
+      let isResting = false;
+      let secondsReadAccumulator = 0;
+
+      // Text-to-Speech state
+      let isSpeaking = false;
+
+      // Custom AI Page Context Chat state
+      let aiChatHistory = [];
+      let cachedPageContext = { bookId: null, page: null, text: '' };
+      let aiRequestInFlight = false;
+
+      // Custom confirm callback
+      let confirmCallback = null;
+
+      // Zoom badge timer
+      let zoomBadgeTimeout = null;
+
+      /* -------------------------------------------------------------------
+         3. LOCAL STORAGE HELPERS (Settings & Daily Stats)
+         ------------------------------------------------------------------- */
+      function loadPrefs() {
+        try {
+          const saved = JSON.parse(localStorage.getItem('eyesafe_prefs_v1'));
+          return { ...DEFAULT_PREFS, ...(saved || {}) };
+        } catch (e) {
+          return { ...DEFAULT_PREFS };
+        }
+      }
+
+      function savePrefs() {
+        try {
+          localStorage.setItem('eyesafe_prefs_v1', JSON.stringify(prefs));
+        } catch (e) {
+          console.warn('Could not save preferences:', e);
+        }
+      }
+
+      function getTodayKey() {
+        const d = new Date();
+        return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+      }
+
+      function loadStats() {
+        const today = getTodayKey();
+        try {
+          const saved = JSON.parse(localStorage.getItem('eyesafe_stats_v1'));
+          if (saved && saved.date === today) {
+            return saved;
+          }
+        } catch (e) {}
+        return { date: today, minutesRead: 0, breaksTaken: 0 };
+      }
+
+      function saveStats() {
+        try {
+          localStorage.setItem('eyesafe_stats_v1', JSON.stringify(stats));
+        } catch (e) {}
+        updateStatsUI();
+      }
+
+      function updateStatsUI() {
+        const minEl = document.getElementById('stat-minutes');
+        const brkEl = document.getElementById('stat-breaks');
+        if (minEl) minEl.textContent = `${stats.minutesRead} min`;
+        if (brkEl) brkEl.textContent = `${stats.breaksTaken}`;
+      }
+
+      function escapeHTML(str) {
+        return String(str || '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function formatBytes(bytes) {
+        if (!bytes || bytes <= 0) return '0 KB';
+        const kb = bytes / 1024;
+        if (kb < 1024) return `${kb.toFixed(0)} KB`;
+        return `${(kb / 1024).toFixed(1)} MB`;
+      }
+
+      /* -------------------------------------------------------------------
+         4. INDEXEDDB STORAGE FOR LOCAL PDF BOOKS
+         ------------------------------------------------------------------- */
+      function initDB() {
+        return new Promise((resolve, reject) => {
+          try {
+            const request = indexedDB.open('EyeSafeReaderDB', 1);
+            request.onupgradeneeded = (event) => {
+              const database = event.target.result;
+              if (!database.objectStoreNames.contains('books')) {
+                database.createObjectStore('books', { keyPath: 'id' });
+              }
+            };
+            request.onsuccess = (event) => {
+              db = event.target.result;
+              resolve(db);
+            };
+            request.onerror = (event) => reject(event.target.error);
+          } catch (err) {
+            reject(err);
+          }
+        });
+      }
+
+      function dbGetAllBooks() {
+        return new Promise((resolve, reject) => {
+          if (!db) return resolve([]);
+          const tx = db.transaction('books', 'readonly');
+          const store = tx.objectStore('books');
+          const req = store.getAll();
+          req.onsuccess = () => resolve(req.result || []);
+          req.onerror = () => reject(req.error);
+        });
+      }
+
+      function dbSaveBook(bookRecord) {
+        return new Promise((resolve, reject) => {
+          if (!db) return reject(new Error('Storage unavailable'));
+          const tx = db.transaction('books', 'readwrite');
+          const store = tx.objectStore('books');
+          const req = store.put(bookRecord);
+          req.onsuccess = () => resolve();
+          req.onerror = () => reject(req.error);
+        });
+      }
+
+      function dbDeleteBook(id) {
+        return new Promise((resolve, reject) => {
+          if (!db) return resolve();
+          const tx = db.transaction('books', 'readwrite');
+          const store = tx.objectStore('books');
+          const req = store.delete(id);
+          req.onsuccess = () => resolve();
+          req.onerror = () => reject(req.error);
+        });
+      }
+
+      /* -------------------------------------------------------------------
+         5. GENTLE WEB AUDIO CHIME (Zero external audio files)
+         ------------------------------------------------------------------- */
+      function playGentleChime(type = 'start') {
+        if (!prefs.soundEnabled) return;
+        try {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (!AudioCtx) return;
+          const ctx = new AudioCtx();
+
+          const notes = type === 'start' ? [440, 554.37] : [523.25, 659.25];
+          notes.forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.18);
+
+            gain.gain.setValueAtTime(0.001, ctx.currentTime + idx * 0.18);
+            gain.gain.exponentialRampToValueAtTime(0.12, ctx.currentTime + idx * 0.18 + 0.08);
+            gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + idx * 0.18 + 1.1);
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(ctx.currentTime + idx * 0.18);
+            osc.stop(ctx.currentTime + idx * 0.18 + 1.15);
+          });
+        } catch (e) {}
+      }
+
+      /* -------------------------------------------------------------------
+         6. UI HELPERS (Toast, Zoom Badge, Confirm Modal, Theme Application)
+         ------------------------------------------------------------------- */
+      let toastTimeout = null;
+      function showToast(message) {
+        const el = document.getElementById('toast');
+        el.textContent = message;
+        el.classList.remove('opacity-0', '-translate-y-2');
+        el.classList.add('opacity-100', 'translate-y-0');
+        clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => {
+          el.classList.add('opacity-0', '-translate-y-2');
+          el.classList.remove('opacity-100', 'translate-y-0');
+        }, 2600);
+      }
+
+      function showZoomBadge(label) {
+        const zoomBadge = document.getElementById('zoom-badge');
+        if (!zoomBadge) return;
+        zoomBadge.textContent = label;
+        zoomBadge.classList.remove('opacity-0');
+        zoomBadge.classList.add('opacity-100');
+        clearTimeout(zoomBadgeTimeout);
+        zoomBadgeTimeout = setTimeout(() => {
+          zoomBadge.classList.remove('opacity-100');
+          zoomBadge.classList.add('opacity-0');
+        }, 900);
+      }
+
+      function updateZoomButtonLabel() {
+        const btn = document.getElementById('zoom-reset-btn');
+        if (!btn) return;
+        if (activeBook && (prefs.viewMode === 'text' || activeBook.isDemo)) {
+          btn.textContent = `${prefs.fontSize}px`;
+        } else {
+          btn.textContent = `${Math.round(prefs.zoom * 100)}%`;
+        }
+      }
+
+      function openConfirm(title, message, onConfirm) {
+        document.getElementById('confirm-title').textContent = title;
+        document.getElementById('confirm-msg').textContent = message;
+        confirmCallback = onConfirm;
+        document.getElementById('confirm-modal').classList.remove('hidden');
+      }
+
+      function closeConfirm() {
+        document.getElementById('confirm-modal').classList.add('hidden');
+        confirmCallback = null;
+      }
+
+      function applyEyeSettings() {
+        // Apply theme class
+        document.body.classList.remove('theme-dark', 'theme-midnight', 'theme-sepia', 'theme-light');
+        document.body.classList.add(`theme-${prefs.theme}`);
+
+        // Highlight active theme button
+        document.querySelectorAll('.theme-option').forEach((btn) => {
+          const isActive = btn.dataset.theme === prefs.theme;
+          btn.style.borderColor = isActive ? 'var(--accent)' : 'var(--border-subtle)';
+          btn.style.backgroundColor = isActive ? 'var(--accent-soft)' : 'transparent';
+        });
+
+        // Apply Warm Blue-Light Filter & Extra Dimmer
+        document.getElementById('warmth-overlay').style.opacity = (prefs.warmth / 100).toFixed(2);
+        document.getElementById('dimmer-overlay').style.opacity = (prefs.dimmer / 100).toFixed(2);
+
+        // Sync slider labels & values
+        document.getElementById('warmth-slider').value = prefs.warmth;
+        document.getElementById('warmth-val').textContent = `${prefs.warmth}%`;
+
+        document.getElementById('dimmer-slider').value = prefs.dimmer;
+        document.getElementById('dimmer-val').textContent = `${prefs.dimmer}%`;
+
+        document.getElementById('font-size-slider').value = prefs.fontSize;
+        document.getElementById('font-size-val').textContent = `${prefs.fontSize}px`;
+
+        document.getElementById('line-height-slider').value = prefs.lineHeight;
+        document.getElementById('line-height-val').textContent = `${prefs.lineHeight}`;
+
+        // Apply text styles to Reflow Text View
+        const textBox = document.getElementById('text-reflow-content');
+        textBox.style.fontSize = `${prefs.fontSize}px`;
+        textBox.style.lineHeight = `${prefs.lineHeight}`;
+
+        // Update Sound & Interval buttons
+        const soundBtn = document.getElementById('sound-toggle-btn');
+        if (soundBtn) {
+          soundBtn.textContent = prefs.soundEnabled ? 'Sound: ON' : 'Sound: OFF';
+        }
+
+        document.querySelectorAll('.interval-btn').forEach((btn) => {
+          const active = Number(btn.dataset.interval) === prefs.intervalMin;
+          btn.className = active
+            ? 'interval-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-accent text-zinc-950'
+            : 'interval-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-elevated text-main';
+        });
+
+        // Pinch-to-Zoom toggle & stage touch-action
+        const pinchBtn = document.getElementById('pinch-zoom-toggle-btn');
+        const stage = document.getElementById('reading-stage');
+        if (pinchBtn) {
+          pinchBtn.textContent = prefs.pinchZoom ? 'ON' : 'OFF';
+          pinchBtn.className = prefs.pinchZoom
+            ? 'px-3 py-1.5 rounded-lg bg-accent-soft text-accent text-xs font-semibold active:scale-95 transition'
+            : 'px-3 py-1.5 rounded-lg bg-elevated text-muted text-xs font-semibold active:scale-95 transition';
+        }
+        if (stage) {
+          stage.classList.toggle('pinch-enabled', !!prefs.pinchZoom);
+        }
+
+        // Discreet AI chat button visibility (only shown when explicitly enabled)
+        const aiBtn = document.getElementById('ai-chat-trigger-btn');
+        if (aiBtn) {
+          aiBtn.classList.toggle('hidden', !prefs.aiEnabled);
+        }
+
+        updateZoomButtonLabel();
+      }
+
+      /* -------------------------------------------------------------------
+         6B. CUSTOM AI PAGE CONTEXT CHAT HELPERS
+         ------------------------------------------------------------------- */
+      function syncAiConfigUI() {
+        const enableBtn = document.getElementById('ai-enable-toggle-btn');
+        enableBtn.textContent = prefs.aiEnabled ? 'ON' : 'OFF';
+        enableBtn.className = prefs.aiEnabled
+          ? 'px-3 py-1.5 rounded-lg bg-accent-soft text-accent text-xs font-semibold active:scale-95 transition'
+          : 'px-3 py-1.5 rounded-lg bg-surface border border-subtle text-xs font-semibold text-muted active:scale-95 transition';
+
+        document.querySelectorAll('.ai-provider-btn').forEach((btn) => {
+          const active = btn.dataset.provider === prefs.aiProvider;
+          btn.style.borderColor = active ? 'var(--accent)' : 'var(--border-subtle)';
+          btn.style.backgroundColor = active ? 'var(--accent-soft)' : 'transparent';
+          btn.style.color = active ? 'var(--accent)' : 'var(--text-primary)';
+        });
+
+        const isGemini = prefs.aiProvider === 'gemini';
+        document.getElementById('ai-endpoint-group').classList.toggle('hidden', isGemini);
+        document.getElementById('ai-endpoint-input').value = prefs.aiEndpoint || '';
+        document.getElementById('ai-model-input').value =
+          prefs.aiModel || (isGemini ? 'gemini-2.5-flash' : 'gpt-4o-mini');
+        document.getElementById('ai-model-input').placeholder = isGemini ? 'gemini-2.5-flash' : 'gpt-4o-mini';
+        document.getElementById('ai-key-input').value = prefs.aiApiKey || '';
+        document.getElementById('ai-key-hint').textContent = isGemini
+          ? '(your Gemini API key, stored locally)'
+          : '(stored only on this device)';
+        document.getElementById('ai-system-input').value = prefs.aiSystemPrompt || DEFAULT_PREFS.aiSystemPrompt;
+      }
+
+      async function getCurrentPageContextText() {
+        if (!activeBook) return '';
+        if (cachedPageContext.bookId === activeBook.id && cachedPageContext.page === currentPage) {
+          return cachedPageContext.text;
+        }
+        let text = '';
+        try {
+          if (activeBook.isDemo) {
+            const p = activeBook.pages[currentPage - 1];
+            text = `${p.heading}\n\n${p.paragraphs.join('\n\n')}`;
+          } else if (activePdfDoc) {
+            const page = await activePdfDoc.getPage(currentPage);
+            const tc = await page.getTextContent();
+            text = extractCleanParagraphs(tc.items).join('\n\n');
+          }
+        } catch (e) {
+          text = '';
+        }
+        cachedPageContext = { bookId: activeBook.id, page: currentPage, text };
+        return text;
+      }
+
+      async function openAiChatModal() {
+        if (!activeBook) {
+          showToast('Open a book first to chat about a page.');
+          return;
+        }
+        const modal = document.getElementById('ai-chat-modal');
+        const statusEl = document.getElementById('ai-context-status');
+        modal.classList.remove('hidden');
+        statusEl.textContent = `Extracting Page ${currentPage} context...`;
+
+        const text = await getCurrentPageContextText();
+        const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+        statusEl.textContent =
+          words > 0
+            ? `Page ${currentPage} of ${totalPages} loaded (${words} words)`
+            : `Page ${currentPage} has no selectable text (scanned image)`;
+
+        renderAiChatMessages();
+      }
+
+      function renderAiChatMessages() {
+        const feed = document.getElementById('ai-chat-messages');
+        if (aiChatHistory.length === 0) {
+          feed.innerHTML = `
+            <div class="text-center py-8 px-4 text-muted text-xs leading-relaxed">
+              Ask anything about <strong class="text-main">Page ${currentPage}</strong> of
+              <span class="text-accent">${escapeHTML(activeBook ? activeBook.title : 'this book')}</span>.
+              The page text is automatically attached as context.
+            </div>`;
+          return;
+        }
+        feed.innerHTML = '';
+        aiChatHistory.forEach((msg) => {
+          const wrap = document.createElement('div');
+          const isUser = msg.role === 'user';
+          wrap.className = isUser ? 'flex justify-end' : 'flex justify-start';
+          const bubble = document.createElement('div');
+          bubble.className = isUser
+            ? 'max-w-[85%] px-3.5 py-2.5 rounded-2xl rounded-br-sm bg-accent text-zinc-950 font-medium whitespace-pre-wrap leading-relaxed'
+            : msg.isError
+              ? 'max-w-[90%] px-3.5 py-2.5 rounded-2xl rounded-bl-sm bg-red-500/15 border border-red-500/30 text-red-200 whitespace-pre-wrap leading-relaxed'
+              : 'max-w-[90%] px-3.5 py-2.5 rounded-2xl rounded-bl-sm bg-elevated border border-subtle text-main whitespace-pre-wrap leading-relaxed';
+          bubble.textContent = msg.text;
+          wrap.appendChild(bubble);
+          feed.appendChild(wrap);
+        });
+        feed.scrollTop = feed.scrollHeight;
+      }
+
+      async function fetchWithBackoff(url, options, maxRetries = 2) {
+        let delay = 1000;
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+          const resp = await fetch(url, options);
+          if (resp.ok || (resp.status !== 429 && resp.status < 500) || attempt === maxRetries) {
+            return resp;
+          }
+          await new Promise((r) => setTimeout(r, delay));
+          delay *= 2;
+        }
+      }
+
+      async function sendAiChatMessage(userQuestion) {
+        const cleanQ = (userQuestion || '').trim();
+        if (!cleanQ || aiRequestInFlight) return;
+
+        aiRequestInFlight = true;
+        document.getElementById('ai-send-btn').disabled = true;
+        aiChatHistory.push({ role: 'user', text: cleanQ });
+        aiChatHistory.push({ role: 'assistant', text: 'Thinking...', isPending: true });
+        renderAiChatMessages();
+
+        const pageText = await getCurrentPageContextText();
+        const clippedContext = pageText.slice(0, 12000);
+        const systemInstruction =
+          `${prefs.aiSystemPrompt || DEFAULT_PREFS.aiSystemPrompt}\n\n` +
+          `Book: "${activeBook ? activeBook.title : 'Unknown'}" (Page ${currentPage} of ${totalPages}).\n` +
+          `--- CURRENT PAGE TEXT ---\n${clippedContext || '[No extractable text on this page]'}\n--- END PAGE TEXT ---`;
+
+        const priorTurns = aiChatHistory
+          .filter((m) => !m.isPending && !m.isError)
+          .slice(-8);
+
+        try {
+          let replyText = '';
+
+          if (prefs.aiProvider === 'gemini') {
+            const model = (prefs.aiModel || 'gemini-2.5-flash').trim();
+            const key = (prefs.aiApiKey || '').trim();
+            if (!key) {
+              throw new Error('Please add your Gemini API key in AI Settings (gear icon).');
+            }
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
+            const payload = {
+              contents: priorTurns.map((m) => ({
+                role: m.role === 'user' ? 'user' : 'model',
+                parts: [{ text: m.text }]
+              })),
+              systemInstruction: { parts: [{ text: systemInstruction }] }
+            };
+            const resp = await fetchWithBackoff(apiUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+            const data = await resp.json().catch(() => ({}));
+            if (!resp.ok) {
+              throw new Error(data?.error?.message || `Request failed (${resp.status})`);
+            }
+            replyText = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'No response received.';
+          } else {
+            const endpoint = (prefs.aiEndpoint || '').trim();
+            if (!endpoint) {
+              throw new Error('Please set your Custom API Endpoint URL in AI Settings (gear icon).');
+            }
+            const headers = { 'Content-Type': 'application/json' };
+            if (prefs.aiApiKey && prefs.aiApiKey.trim()) {
+              headers['Authorization'] = `Bearer ${prefs.aiApiKey.trim()}`;
+            }
+            const payload = {
+              model: (prefs.aiModel || 'gpt-4o-mini').trim(),
+              messages: [
+                { role: 'system', content: systemInstruction },
+                ...priorTurns.map((m) => ({ role: m.role, content: m.text }))
+              ]
+            };
+            const resp = await fetchWithBackoff(endpoint, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify(payload)
+            });
+            const data = await resp.json().catch(() => ({}));
+            if (!resp.ok) {
+              throw new Error(data?.error?.message || data?.message || `API Error (${resp.status})`);
+            }
+            replyText =
+              data?.choices?.[0]?.message?.content ||
+              data?.message?.content ||
+              data?.response ||
+              data?.output_text ||
+              'No response text found in API reply.';
+          }
+
+          aiChatHistory.pop();
+          aiChatHistory.push({ role: 'assistant', text: replyText.trim() });
+        } catch (err) {
+          aiChatHistory.pop();
+          aiChatHistory.push({
+            role: 'assistant',
+            isError: true,
+            text: `Could not reach AI: ${err.message || 'Check your endpoint URL, API key, or CORS settings.'}`
+          });
+        } finally {
+          aiRequestInFlight = false;
+          document.getElementById('ai-send-btn').disabled = false;
+          renderAiChatMessages();
+        }
+      }
+
+      /* -------------------------------------------------------------------
+         7. LIBRARY RENDERING & PDF UPLOAD
+         ------------------------------------------------------------------- */
+      async function refreshLibrary() {
+        const grid = document.getElementById('books-grid');
+        const emptyMsg = document.getElementById('empty-library-msg');
+        const statBooks = document.getElementById('stat-books');
+        const usageLabel = document.getElementById('storage-usage-label');
+
+        let books = [];
+        try {
+          books = await dbGetAllBooks();
+        } catch (e) {
+          books = [];
+        }
+
+        books.sort((a, b) => (b.lastRead || 0) - (a.lastRead || 0));
+
+        statBooks.textContent = `${books.length}`;
+        const totalSize = books.reduce((acc, b) => acc + (b.fileSize || 0), 0);
+        usageLabel.textContent =
+          books.length > 0 ? `${books.length} PDF(s) • ${formatBytes(totalSize)} saved locally` : 'Stored locally';
+
+        grid.innerHTML = '';
+        if (books.length === 0) {
+          emptyMsg.classList.remove('hidden');
+          return;
+        }
+        emptyMsg.classList.add('hidden');
+
+        books.forEach((book) => {
+          const pct = book.totalPages > 0 ? Math.min(100, Math.round((book.currentPage / book.totalPages) * 100)) : 0;
+          const card = document.createElement('div');
+          card.className =
+            'bg-surface border border-subtle rounded-2xl p-4 flex flex-col justify-between gap-3 hover:border-amber-500/40 transition';
+
+          card.innerHTML = `
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <h4 class="text-sm sm:text-base font-semibold text-main truncate">${escapeHTML(book.title)}</h4>
+                <p class="text-xs text-muted mt-0.5">
+                  Page ${book.currentPage || 1} of ${book.totalPages || '?'} • ${formatBytes(book.fileSize)}
+                </p>
+              </div>
+              <button type="button" class="delete-book-btn p-2 rounded-xl text-muted hover:text-red-400 hover:bg-elevated transition shrink-0" title="Remove from local storage" aria-label="Delete book">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
+            <div>
+              <div class="w-full h-1.5 bg-elevated rounded-full overflow-hidden mb-3">
+                <div class="h-full bg-accent rounded-full" style="width: ${pct}%;"></div>
+              </div>
+              <button type="button" class="open-book-btn w-full py-2.5 rounded-xl bg-accent-soft text-accent hover:opacity-90 font-semibold text-xs sm:text-sm active:scale-95 transition">
+                ${book.currentPage > 1 ? `Resume Page ${book.currentPage} (${pct}%)` : 'Start Reading'}
+              </button>
+            </div>
+          `;
+
+          card.querySelector('.open-book-btn').addEventListener('click', () => openBook(book));
+          card.querySelector('.delete-book-btn').addEventListener('click', () => {
+            openConfirm(
+              'Remove Book?',
+              `"${book.title}" will be deleted from this browser's local storage.`,
+              async () => {
+                await dbDeleteBook(book.id);
+                showToast('Book removed from local storage');
+                refreshLibrary();
+              }
+            );
+          });
+
+          grid.appendChild(card);
+        });
+      }
+
+      async function handlePDFUpload(file) {
+        if (!file) return;
+        const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+        if (!isPdf) {
+          showToast('Please select a valid PDF file.');
+          return;
+        }
+        if (!window.pdfjsLib) {
+          showToast('PDF engine is still loading. Check your internet connection.');
+          return;
+        }
+
+        const statusEl = document.getElementById('upload-status');
+        statusEl.textContent = `Loading "${file.name}" into local storage...`;
+        statusEl.classList.remove('hidden');
+
+        try {
+          const arrayBuffer = await file.arrayBuffer();
+          const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer.slice(0) }).promise;
+
+          const cleanTitle = file.name.replace(/\.pdf$/i, '').replace(/[_-]+/g, ' ').trim() || 'Untitled Book';
+          const bookRecord = {
+            id: `pdf-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+            title: cleanTitle,
+            fileName: file.name,
+            fileSize: file.size,
+            isDemo: false,
+            currentPage: 1,
+            totalPages: pdfDoc.numPages,
+            bookmarks: [],
+            addedAt: Date.now(),
+            lastRead: Date.now(),
+            data: arrayBuffer
+          };
+
+          try {
+            await dbSaveBook(bookRecord);
+            showToast(`Saved "${cleanTitle}" (${pdfDoc.numPages} pages) locally!`);
+          } catch (storageErr) {
+            console.warn('Could not persist large PDF to IndexedDB:', storageErr);
+            showToast('Opened book (storage quota full; may not persist after reload).');
+          }
+
+          statusEl.classList.add('hidden');
+          await refreshLibrary();
+          openBook(bookRecord, pdfDoc);
+        } catch (err) {
+          console.error('PDF load error:', err);
+          statusEl.classList.add('hidden');
+          showToast('Could not read this PDF. Make sure it is not password-protected.');
+        }
+      }
+
+      /* -------------------------------------------------------------------
+         8. OPEN BOOK & FLICKER-FREE OFFSCREEN PDF RENDERING
+         ------------------------------------------------------------------- */
+      async function openBook(bookRecord, preloadedPdf = null) {
+        stopTTS();
+        activeBook = bookRecord;
+        currentPage = bookRecord.currentPage || 1;
+        cachedPageContext = { bookId: null, page: null, text: '' };
+        hudHidden = false;
+        document.getElementById('reader-view').classList.remove('hud-hidden');
+        document.getElementById('show-hud-pill').classList.add('hidden');
+
+        document.getElementById('library-view').classList.add('hidden');
+        document.getElementById('reader-view').classList.remove('hidden');
+        document.getElementById('reader-book-title').textContent = bookRecord.title;
+        document.getElementById('page-loader').classList.remove('hidden');
+
+        try {
+          if (bookRecord.isDemo) {
+            activePdfDoc = null;
+            totalPages = bookRecord.pages.length;
+          } else {
+            if (preloadedPdf) {
+              activePdfDoc = preloadedPdf;
+            } else {
+              const loadingTask = pdfjsLib.getDocument({ data: bookRecord.data.slice(0) });
+              activePdfDoc = await loadingTask.promise;
+            }
+            totalPages = activePdfDoc.numPages;
+            activeBook.totalPages = totalPages;
+          }
+
+          if (currentPage > totalPages) currentPage = totalPages;
+          if (currentPage < 1) currentPage = 1;
+
+          updateViewModeButton();
+          updateNavigationControls();
+          updateZoomButtonLabel();
+          await renderCurrentPage({ preserveScroll: false, silent: false });
+
+          startEyeTimer();
+        } catch (err) {
+          console.error('Error opening book:', err);
+          showToast('Error opening PDF. Please try re-uploading.');
+          closeReader();
+        }
+      }
+
+      function closeReader() {
+        stopTTS();
+        stopEyeTimer();
+        exitFullscreenSafe();
+        activePdfDoc = null;
+        activeBook = null;
+        document.getElementById('reader-view').classList.add('hidden');
+        document.getElementById('library-view').classList.remove('hidden');
+        refreshLibrary();
+      }
+
+      function updateViewModeButton() {
+        const label = document.getElementById('view-mode-label');
+        const btn = document.getElementById('view-mode-btn');
+        if (activeBook && activeBook.isDemo) {
+          btn.classList.add('hidden');
+          return;
+        }
+        btn.classList.remove('hidden');
+        label.textContent = prefs.viewMode === 'canvas' ? 'Text Mode' : 'Page View';
+        updateZoomButtonLabel();
+      }
+
+      function updateNavigationControls() {
+        document.getElementById('reader-page-subtitle').textContent = `Page ${currentPage} of ${totalPages}`;
+        document.getElementById('page-current-badge').textContent = `${currentPage}`;
+        document.getElementById('page-total-badge').textContent = `${totalPages}`;
+
+        const slider = document.getElementById('page-slider');
+        slider.max = totalPages;
+        slider.value = currentPage;
+
+        document.getElementById('prev-page-btn').disabled = currentPage <= 1;
+        document.getElementById('next-page-btn').disabled = currentPage >= totalPages;
+
+        const isBookmarked =
+          activeBook && Array.isArray(activeBook.bookmarks) && activeBook.bookmarks.includes(currentPage);
+        const bmIcon = document.getElementById('bookmark-icon');
+        if (isBookmarked) {
+          bmIcon.setAttribute('fill', 'currentColor');
+          bmIcon.classList.add('text-accent');
+        } else {
+          bmIcon.setAttribute('fill', 'none');
+          bmIcon.classList.remove('text-accent');
+        }
+      }
+
+      async function saveCurrentProgress() {
+        if (!activeBook) return;
+        activeBook.currentPage = currentPage;
+        activeBook.lastRead = Date.now();
+        if (!activeBook.isDemo) {
+          try {
+            await dbSaveBook(activeBook);
+          } catch (e) {
+            console.warn('Could not save page progress:', e);
+          }
+        }
+      }
+
+      /**
+       * Renders the current page.
+       * When preserveScroll is true (e.g., after pinch-zoom or A+/A-), renders offscreen first
+       * so there is ZERO flicker, ZERO snap-back, and the user's focal scroll position is preserved.
+       */
+      async function renderCurrentPage(opts = {}) {
+        if (!activeBook) return;
+        const { preserveScroll = false, silent = false, focalRatioX = null, focalRatioY = null } = opts;
+
+        const myTicket = ++renderTicket;
+        if (!preserveScroll) stopTTS();
+
+        const loader = document.getElementById('page-loader');
+        const canvasWrap = document.getElementById('canvas-wrapper');
+        const textWrap = document.getElementById('text-reflow-wrapper');
+        const stage = document.getElementById('reading-stage');
+        const canvas = document.getElementById('pdf-canvas');
+
+        // Capture focal ratios before re-rendering if preserving scroll
+        let savedRatioX = focalRatioX;
+        let savedRatioY = focalRatioY;
+        if (preserveScroll && savedRatioX === null && stage.scrollWidth > 0) {
+          savedRatioX = (stage.scrollLeft + stage.clientWidth / 2) / stage.scrollWidth;
+        }
+        if (preserveScroll && savedRatioY === null && stage.scrollHeight > 0) {
+          savedRatioY = (stage.scrollTop + stage.clientHeight / 2) / stage.scrollHeight;
+        }
+
+        if (!silent) {
+          loader.classList.remove('hidden');
+        }
+
+        try {
+          if (activeBook.isDemo) {
+            canvasWrap.classList.add('hidden');
+            textWrap.classList.remove('hidden');
+            const p = activeBook.pages[currentPage - 1];
+            const container = document.getElementById('text-reflow-content');
+            container.innerHTML =
+              `<h2 class="text-xl sm:text-2xl font-bold text-accent mb-4 font-sans">${escapeHTML(p.heading)}</h2>` +
+              p.paragraphs.map((para) => `<p>${escapeHTML(para)}</p>`).join('');
+            if (!preserveScroll) stage.scrollTop = 0;
+          } else if (prefs.viewMode === 'text') {
+            canvasWrap.classList.add('hidden');
+            textWrap.classList.remove('hidden');
+            const page = await activePdfDoc.getPage(currentPage);
+            if (myTicket !== renderTicket) return;
+
+            const textContent = await page.getTextContent();
+            if (myTicket !== renderTicket) return;
+
+            const paragraphs = extractCleanParagraphs(textContent.items);
+            const container = document.getElementById('text-reflow-content');
+            if (paragraphs.length === 0) {
+              container.innerHTML = `
+                <div class="p-6 rounded-2xl bg-surface border border-subtle text-center font-sans">
+                  <p class="text-sm font-semibold text-main mb-1">This page appears to be a scanned image.</p>
+                  <p class="text-xs text-muted mb-3">Switch back to Page View to see the original page with Dark / Sepia eye filters.</p>
+                  <button id="switch-to-canvas-inline" type="button" class="px-4 py-2 rounded-xl bg-accent text-zinc-950 text-xs font-semibold">Switch to Page View</button>
+                </div>`;
+              document.getElementById('switch-to-canvas-inline').addEventListener('click', toggleViewMode);
+            } else {
+              container.innerHTML = paragraphs.map((p) => `<p>${escapeHTML(p)}</p>`).join('');
+            }
+            if (!preserveScroll) stage.scrollTop = 0;
+          } else {
+            textWrap.classList.add('hidden');
+            canvasWrap.classList.remove('hidden');
+
+            const page = await activePdfDoc.getPage(currentPage);
+            if (myTicket !== renderTicket) return;
+
+            const unscaledViewport = page.getViewport({ scale: 1 });
+            // Fit-to-width baseline using visible viewport width (never shrunk by previous zoom)
+            const availableWidth = Math.max(240, Math.min(stage.clientWidth - 20, 860));
+            const baseScale = availableWidth / unscaledViewport.width;
+            const effectiveScale = Math.max(0.5, baseScale * prefs.zoom);
+
+            // Cap DPR gracefully at high zoom so mobile GPU memory stays fast & crisp
+            const rawDpr = window.devicePixelRatio || 1;
+            const dpr = prefs.zoom > 1.8 ? Math.min(rawDpr, 1.5) : Math.min(rawDpr, 2);
+            const viewport = page.getViewport({ scale: effectiveScale });
+
+            // Render onto an offscreen canvas first so visible page never flashes or snaps back
+            const offscreen = document.createElement('canvas');
+            offscreen.width = Math.floor(viewport.width * dpr);
+            offscreen.height = Math.floor(viewport.height * dpr);
+            const offCtx = offscreen.getContext('2d');
+            offCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+            await page.render({ canvasContext: offCtx, viewport }).promise;
+            if (myTicket !== renderTicket) return;
+
+            // Swap cleanly into the live canvas and clear any CSS pinch transform in the exact same frame
+            canvas.style.transform = '';
+            canvas.style.transformOrigin = 'center top';
+            canvas.width = offscreen.width;
+            canvas.height = offscreen.height;
+            canvas.style.width = `${Math.floor(viewport.width)}px`;
+            canvas.style.height = `${Math.floor(viewport.height)}px`;
+
+            const liveCtx = canvas.getContext('2d');
+            liveCtx.setTransform(1, 0, 0, 1, 0, 0);
+            liveCtx.drawImage(offscreen, 0, 0);
+
+            if (preserveScroll) {
+              // Restore exact focal point so user stays locked onto the exact equation/paragraph they zoomed into
+              const targetX = Math.max(0, savedRatioX * stage.scrollWidth - stage.clientWidth / 2);
+              const targetY = Math.max(0, savedRatioY * stage.scrollHeight - stage.clientHeight / 2);
+              stage.scrollLeft = targetX;
+              stage.scrollTop = targetY;
+            } else {
+              stage.scrollLeft = 0;
+              stage.scrollTop = 0;
+            }
+          }
+
+          updateNavigationControls();
+          updateZoomButtonLabel();
+          saveCurrentProgress();
+        } catch (err) {
+          if (myTicket === renderTicket) {
+            console.error('Render error:', err);
+            canvas.style.transform = '';
+            showToast('Error rendering page');
+          }
+        } finally {
+          if (myTicket === renderTicket) {
+            loader.classList.add('hidden');
+          }
+        }
+      }
+
+      // Intelligent PDF text-item grouping into smooth paragraphs
+      function extractCleanParagraphs(items) {
+        if (!items || !items.length) return [];
+        const lines = [];
+        let currentLine = '';
+        let lastY = null;
+
+        for (const item of items) {
+          const str = item.str;
+          const y = item.transform ? item.transform[5] : null;
+          if (lastY !== null && y !== null && Math.abs(y - lastY) > 6) {
+            if (currentLine.trim()) lines.push({ text: currentLine.trim(), gap: Math.abs(y - lastY) });
+            currentLine = str;
+          } else {
+            currentLine += (currentLine && !currentLine.endsWith(' ') && !str.startsWith(' ') ? ' ' : '') + str;
+          }
+          if (y !== null) lastY = y;
+        }
+        if (currentLine.trim()) lines.push({ text: currentLine.trim(), gap: 0 });
+
+        const paragraphs = [];
+        let buffer = '';
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i].text;
+          const gap = lines[i].gap;
+
+          if (buffer.endsWith('-')) {
+            buffer = buffer.slice(0, -1) + line;
+          } else {
+            buffer = buffer ? `${buffer} ${line}` : line;
+          }
+
+          const endsSentence = /[.!?:”"']$/.test(line);
+          const nextIsLargeGap = gap > 22;
+          if ((endsSentence && buffer.length > 180) || nextIsLargeGap) {
+            paragraphs.push(buffer.trim());
+            buffer = '';
+          }
+        }
+        if (buffer.trim()) paragraphs.push(buffer.trim());
+        return paragraphs;
+      }
+
+      function goToPage(num) {
+        const target = Math.max(1, Math.min(totalPages, Number(num) || 1));
+        if (target === currentPage) return;
+        currentPage = target;
+        renderCurrentPage({ preserveScroll: false, silent: false });
+      }
+
+      function toggleViewMode() {
+        if (!activeBook || activeBook.isDemo) return;
+        prefs.viewMode = prefs.viewMode === 'canvas' ? 'text' : 'canvas';
+        savePrefs();
+        updateViewModeButton();
+        showToast(prefs.viewMode === 'text' ? 'Switched to Phone-Friendly Text Mode' : 'Switched to Original Page View');
+        renderCurrentPage({ preserveScroll: false, silent: false });
+      }
+
+      function adjustZoom(delta) {
+        if (!activeBook) return;
+        if (prefs.viewMode === 'text' || activeBook.isDemo) {
+          prefs.fontSize = Math.max(12, Math.min(34, prefs.fontSize + (delta > 0 ? 2 : -2)));
+          savePrefs();
+          applyEyeSettings();
+          showZoomBadge(`${prefs.fontSize}px`);
+        } else {
+          const next = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, +(prefs.zoom + delta).toFixed(2)));
+          if (next === prefs.zoom) return;
+          prefs.zoom = next;
+          savePrefs();
+          updateZoomButtonLabel();
+          showZoomBadge(`${Math.round(prefs.zoom * 100)}%`);
+          renderCurrentPage({ preserveScroll: true, silent: true });
+        }
+      }
+
+      function resetZoom() {
+        if (!activeBook) return;
+        if (prefs.viewMode === 'text' || activeBook.isDemo) {
+          prefs.fontSize = 18;
+          savePrefs();
+          applyEyeSettings();
+          showZoomBadge('18px');
+        } else {
+          prefs.zoom = 1.0;
+          savePrefs();
+          updateZoomButtonLabel();
+          showZoomBadge('100% Fit');
+          renderCurrentPage({ preserveScroll: true, silent: true, focalRatioX: 0.5 });
+        }
+      }
+
+      /* -------------------------------------------------------------------
+         9. 20-MINUTE READING TIMER + 20-SECOND EYE REST OVERLAY
+         ------------------------------------------------------------------- */
+      function formatTimer(sec) {
+        const m = Math.floor(sec / 60);
+        const s = sec % 60;
+        return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+      }
+
+      function updateTimerUI() {
+        const txt = formatTimer(timerRemainingSec);
+        document.getElementById('timer-display').textContent = txt;
+        document.getElementById('hud-hidden-timer').textContent = txt;
+        document.getElementById('modal-timer-readout').textContent = txt;
+        document.getElementById('toggle-timer-pause-btn').textContent = timerPaused ? 'Resume Timer' : 'Pause Timer';
+      }
+
+      function startEyeTimer() {
+        stopEyeTimer();
+        timerRemainingSec = prefs.intervalMin * 60;
+        timerPaused = false;
+        updateTimerUI();
+
+        timerIntervalId = setInterval(() => {
+          if (timerPaused || isResting || document.visibilityState !== 'visible') return;
+
+          if (timerRemainingSec > 0) {
+            timerRemainingSec--;
+            secondsReadAccumulator++;
+            if (secondsReadAccumulator >= 60) {
+              secondsReadAccumulator = 0;
+              stats.minutesRead += 1;
+              saveStats();
+            }
+            updateTimerUI();
+          }
+
+          if (timerRemainingSec <= 0) {
+            triggerEyeRestBreak();
+          }
+        }, 1000);
+      }
+
+      function stopEyeTimer() {
+        if (timerIntervalId) {
+          clearInterval(timerIntervalId);
+          timerIntervalId = null;
+        }
+        if (restCountdownId) {
+          clearInterval(restCountdownId);
+          restCountdownId = null;
+        }
+        isResting = false;
+        document.getElementById('eye-rest-overlay').classList.add('hidden');
+      }
+
+      function triggerEyeRestBreak() {
+        if (isResting) return;
+        isResting = true;
+        stopTTS();
+        document.getElementById('timer-modal').classList.add('hidden');
+        playGentleChime('start');
+
+        const overlay = document.getElementById('eye-rest-overlay');
+        const numEl = document.getElementById('rest-countdown-num');
+        const ringEl = document.getElementById('rest-progress-ring');
+        const continueBtn = document.getElementById('continue-reading-btn');
+        const titleEl = document.getElementById('rest-title');
+        const instrEl = document.getElementById('rest-instruction');
+
+        const totalRest = 20;
+        let remaining = totalRest;
+        const circumference = 326.72;
+
+        overlay.classList.remove('hidden');
+        numEl.textContent = `${remaining}`;
+        ringEl.style.strokeDashoffset = '0';
+        titleEl.textContent = 'Rest Your Eyes';
+        instrEl.innerHTML =
+          'Look away from the screen at a wall or object about <strong class="text-amber-300">20 feet away</strong>. Blink slowly 5 times and relax your shoulders.';
+        continueBtn.disabled = true;
+        continueBtn.textContent = `Wait ${remaining} seconds...`;
+
+        clearInterval(restCountdownId);
+        restCountdownId = setInterval(() => {
+          remaining--;
+          if (remaining > 0) {
+            numEl.textContent = `${remaining}`;
+            const offset = circumference * (1 - remaining / totalRest);
+            ringEl.style.strokeDashoffset = `${offset}`;
+            continueBtn.textContent = `Wait ${remaining} seconds...`;
+          } else {
+            clearInterval(restCountdownId);
+            restCountdownId = null;
+            numEl.textContent = '0';
+            ringEl.style.strokeDashoffset = `${circumference}`;
+            titleEl.textContent = 'Eyes Refreshed!';
+            instrEl.textContent = 'Great job protecting your vision. Your next reading session is ready.';
+            continueBtn.disabled = false;
+            continueBtn.textContent = 'Continue Reading';
+            playGentleChime('end');
+            stats.breaksTaken += 1;
+            saveStats();
+          }
+        }, 1000);
+      }
+
+      function endEyeRestBreak() {
+        clearInterval(restCountdownId);
+        restCountdownId = null;
+        isResting = false;
+        document.getElementById('eye-rest-overlay').classList.add('hidden');
+        timerRemainingSec = prefs.intervalMin * 60;
+        timerPaused = false;
+        updateTimerUI();
+      }
+
+      /* -------------------------------------------------------------------
+         10. FULLSCREEN / IMMERSIVE MODE & TEXT-TO-SPEECH
+         ------------------------------------------------------------------- */
+      function toggleFullscreen() {
+        try {
+          if (!document.fullscreenElement) {
+            if (document.documentElement.requestFullscreen) {
+              document.documentElement.requestFullscreen().catch(() => {
+                toggleHudVisibility(true);
+              });
+            } else {
+              toggleHudVisibility(true);
+            }
+          } else {
+            document.exitFullscreen().catch(() => {});
+          }
+        } catch (e) {
+          toggleHudVisibility();
+        }
+      }
+
+      function exitFullscreenSafe() {
+        try {
+          if (document.fullscreenElement && document.exitFullscreen) {
+            document.exitFullscreen().catch(() => {});
+          }
+        } catch (e) {}
+      }
+
+      function toggleHudVisibility(forceHidden = null) {
+        hudHidden = forceHidden !== null ? forceHidden : !hudHidden;
+        const reader = document.getElementById('reader-view');
+        const pill = document.getElementById('show-hud-pill');
+        if (hudHidden) {
+          reader.classList.add('hud-hidden');
+          pill.classList.remove('hidden');
+        } else {
+          reader.classList.remove('hud-hidden');
+          pill.classList.add('hidden');
+        }
+      }
+
+      async function toggleTTS() {
+        if (!('speechSynthesis' in window)) {
+          showToast('Read Aloud is not supported on this browser.');
+          return;
+        }
+        if (isSpeaking) {
+          stopTTS();
+          return;
+        }
+
+        let textToRead = '';
+        try {
+          if (activeBook.isDemo) {
+            const p = activeBook.pages[currentPage - 1];
+            textToRead = `${p.heading}. ${p.paragraphs.join(' ')}`;
+          } else if (activePdfDoc) {
+            const page = await activePdfDoc.getPage(currentPage);
+            const tc = await page.getTextContent();
+            textToRead = extractCleanParagraphs(tc.items).join(' ');
+          }
+        } catch (e) {}
+
+        if (!textToRead.trim()) {
+          showToast('No selectable text found on this page to read aloud.');
+          return;
+        }
+
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(textToRead);
+        utterance.rate = 0.95;
+        utterance.onend = () => stopTTS();
+        utterance.onerror = () => stopTTS();
+
+        isSpeaking = true;
+        document.getElementById('tts-label').textContent = 'Stop';
+        document.getElementById('tts-btn').classList.add('bg-accent-soft', 'text-accent');
+        window.speechSynthesis.speak(utterance);
+        showToast('Reading page aloud — rest your eyes');
+      }
+
+      function stopTTS() {
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+        }
+        isSpeaking = false;
+        const label = document.getElementById('tts-label');
+        const btn = document.getElementById('tts-btn');
+        if (label) label.textContent = 'Listen';
+        if (btn) btn.classList.remove('bg-accent-soft', 'text-accent');
+      }
+
+      /* -------------------------------------------------------------------
+         11. BOOKMARKS
+         ------------------------------------------------------------------- */
+      async function toggleBookmark() {
+        if (!activeBook) return;
+        if (!Array.isArray(activeBook.bookmarks)) activeBook.bookmarks = [];
+        const idx = activeBook.bookmarks.indexOf(currentPage);
+        if (idx >= 0) {
+          activeBook.bookmarks.splice(idx, 1);
+          showToast(`Removed bookmark on Page ${currentPage}`);
+        } else {
+          activeBook.bookmarks.push(currentPage);
+          activeBook.bookmarks.sort((a, b) => a - b);
+          showToast(`Bookmarked Page ${currentPage}`);
+        }
+        updateNavigationControls();
+        await saveCurrentProgress();
+      }
+
+      function renderBookmarksList() {
+        const list = document.getElementById('bookmarks-list');
+        const bms = (activeBook && activeBook.bookmarks) || [];
+        if (bms.length === 0) {
+          list.innerHTML = `<p class="text-xs text-muted py-4 text-center">No bookmarks saved yet. Tap the bookmark icon while reading.</p>`;
+          return;
+        }
+        list.innerHTML = '';
+        bms.forEach((pg) => {
+          const item = document.createElement('button');
+          item.type = 'button';
+          item.className =
+            'w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-elevated hover:opacity-90 text-left text-sm text-main transition';
+          item.innerHTML = `<span>Page ${pg}</span><span class="text-xs text-accent font-medium">Jump →</span>`;
+          item.addEventListener('click', () => {
+            document.getElementById('jump-modal').classList.add('hidden');
+            goToPage(pg);
+          });
+          list.appendChild(item);
+        });
+      }
+
+      /* -------------------------------------------------------------------
+         12. EVENT LISTENERS (All Buttons, Modals, Smooth Pinch Zoom, Keys)
+         ------------------------------------------------------------------- */
+      function bindEvents() {
+        const fileInput = document.getElementById('pdf-file-input');
+        const dropzone = document.getElementById('upload-dropzone');
+        const settingsModal = document.getElementById('settings-modal');
+        const timerModal = document.getElementById('timer-modal');
+        const jumpModal = document.getElementById('jump-modal');
+        const confirmModal = document.getElementById('confirm-modal');
+        const aiConfigModal = document.getElementById('ai-config-modal');
+        const aiChatModal = document.getElementById('ai-chat-modal');
+
+        // ---- Library Upload & Demo Book ----
+        document.getElementById('select-pdf-btn').addEventListener('click', (e) => {
+          e.stopPropagation();
+          fileInput.click();
+        });
+
+        document.getElementById('load-demo-btn').addEventListener('click', (e) => {
+          e.stopPropagation();
+          openBook({ ...SAMPLE_DEMO_BOOK, bookmarks: [...SAMPLE_DEMO_BOOK.bookmarks] });
+        });
+
+        dropzone.addEventListener('click', (e) => {
+          if (e.target.closest('#load-demo-btn')) return;
+          fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+          if (e.target.files && e.target.files[0]) {
+            handlePDFUpload(e.target.files[0]);
+            fileInput.value = '';
+          }
+        });
+
+        dropzone.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          dropzone.classList.add('border-amber-500');
+        });
+        dropzone.addEventListener('dragleave', () => {
+          dropzone.classList.remove('border-amber-500');
+        });
+        dropzone.addEventListener('drop', (e) => {
+          e.preventDefault();
+          dropzone.classList.remove('border-amber-500');
+          if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+            handlePDFUpload(e.dataTransfer.files[0]);
+          }
+        });
+
+        // ---- Reader Top & Bottom HUD Controls ----
+        document.getElementById('back-to-lib-btn').addEventListener('click', closeReader);
+        document.getElementById('view-mode-btn').addEventListener('click', toggleViewMode);
+        document.getElementById('bookmark-btn').addEventListener('click', toggleBookmark);
+        document.getElementById('fullscreen-btn').addEventListener('click', toggleFullscreen);
+        document.getElementById('tts-btn').addEventListener('click', toggleTTS);
+        document.getElementById('show-hud-pill').addEventListener('click', () => toggleHudVisibility(false));
+
+        document.getElementById('prev-page-btn').addEventListener('click', () => goToPage(currentPage - 1));
+        document.getElementById('next-page-btn').addEventListener('click', () => goToPage(currentPage + 1));
+
+        document.getElementById('page-slider').addEventListener('input', (e) => {
+          document.getElementById('page-current-badge').textContent = e.target.value;
+        });
+        document.getElementById('page-slider').addEventListener('change', (e) => {
+          goToPage(Number(e.target.value));
+        });
+
+        document.getElementById('zoom-out-btn').addEventListener('click', () => adjustZoom(-0.2));
+        document.getElementById('zoom-reset-btn').addEventListener('click', resetZoom);
+        document.getElementById('zoom-in-btn').addEventListener('click', () => adjustZoom(0.2));
+
+        // ---- Eye Protection & Theme Settings Modal ----
+        const openSettings = () => settingsModal.classList.remove('hidden');
+        const closeSettings = () => settingsModal.classList.add('hidden');
+
+        document.getElementById('lib-eye-settings-btn').addEventListener('click', openSettings);
+        document.getElementById('reader-settings-btn').addEventListener('click', openSettings);
+        document.getElementById('close-settings-btn').addEventListener('click', closeSettings);
+        document.getElementById('done-settings-btn').addEventListener('click', closeSettings);
+        settingsModal.addEventListener('click', (e) => {
+          if (e.target === settingsModal) closeSettings();
+        });
+
+        document.querySelectorAll('.theme-option').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            prefs.theme = btn.dataset.theme;
+            savePrefs();
+            applyEyeSettings();
+          });
+        });
+
+        document.getElementById('warmth-slider').addEventListener('input', (e) => {
+          prefs.warmth = Number(e.target.value);
+          savePrefs();
+          applyEyeSettings();
+        });
+
+        document.getElementById('dimmer-slider').addEventListener('input', (e) => {
+          prefs.dimmer = Number(e.target.value);
+          savePrefs();
+          applyEyeSettings();
+        });
+
+        document.getElementById('font-size-slider').addEventListener('input', (e) => {
+          prefs.fontSize = Number(e.target.value);
+          savePrefs();
+          applyEyeSettings();
+        });
+
+        document.getElementById('line-height-slider').addEventListener('input', (e) => {
+          prefs.lineHeight = Number(e.target.value);
+          savePrefs();
+          applyEyeSettings();
+        });
+
+        document.getElementById('pinch-zoom-toggle-btn').addEventListener('click', () => {
+          prefs.pinchZoom = !prefs.pinchZoom;
+          savePrefs();
+          applyEyeSettings();
+          showToast(prefs.pinchZoom ? 'Two-finger pinch zoom enabled' : 'Two-finger pinch zoom disabled');
+        });
+
+        // ---- 20-20-20 Timer Modal & Eye Rest Overlay ----
+        document.getElementById('timer-pill-btn').addEventListener('click', () => {
+          updateTimerUI();
+          timerModal.classList.remove('hidden');
+        });
+        document.getElementById('close-timer-btn').addEventListener('click', () => {
+          timerModal.classList.add('hidden');
+        });
+        timerModal.addEventListener('click', (e) => {
+          if (e.target === timerModal) timerModal.classList.add('hidden');
+        });
+
+        document.getElementById('toggle-timer-pause-btn').addEventListener('click', () => {
+          timerPaused = !timerPaused;
+          updateTimerUI();
+          showToast(timerPaused ? 'Eye timer paused' : 'Eye timer resumed');
+        });
+
+        document.getElementById('reset-timer-btn').addEventListener('click', () => {
+          timerRemainingSec = prefs.intervalMin * 60;
+          timerPaused = false;
+          updateTimerUI();
+          showToast(`Timer reset to ${prefs.intervalMin}:00`);
+        });
+
+        document.getElementById('sound-toggle-btn').addEventListener('click', () => {
+          prefs.soundEnabled = !prefs.soundEnabled;
+          savePrefs();
+          applyEyeSettings();
+        });
+
+        document.querySelectorAll('.interval-btn').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            prefs.intervalMin = Number(btn.dataset.interval);
+            savePrefs();
+            applyEyeSettings();
+            timerRemainingSec = prefs.intervalMin * 60;
+            updateTimerUI();
+            showToast(`Break interval set to ${prefs.intervalMin} min`);
+          });
+        });
+
+        document.getElementById('test-rest-btn').addEventListener('click', triggerEyeRestBreak);
+        document.getElementById('continue-reading-btn').addEventListener('click', endEyeRestBreak);
+        document.getElementById('skip-rest-btn').addEventListener('click', endEyeRestBreak);
+
+        // ---- Jump to Page & Bookmarks Modal ----
+        document.getElementById('jump-page-btn').addEventListener('click', () => {
+          const inp = document.getElementById('jump-page-input');
+          inp.max = totalPages;
+          inp.value = currentPage;
+          renderBookmarksList();
+          jumpModal.classList.remove('hidden');
+        });
+        document.getElementById('close-jump-btn').addEventListener('click', () => {
+          jumpModal.classList.add('hidden');
+        });
+        jumpModal.addEventListener('click', (e) => {
+          if (e.target === jumpModal) jumpModal.classList.add('hidden');
+        });
+        document.getElementById('jump-page-form').addEventListener('submit', (e) => {
+          e.preventDefault();
+          const val = Number(document.getElementById('jump-page-input').value);
+          if (val >= 1 && val <= totalPages) {
+            jumpModal.classList.add('hidden');
+            goToPage(val);
+          } else {
+            showToast(`Enter a page between 1 and ${totalPages}`);
+          }
+        });
+
+        // ---- Custom Confirm Modal ----
+        document.getElementById('confirm-cancel-btn').addEventListener('click', closeConfirm);
+        document.getElementById('confirm-ok-btn').addEventListener('click', () => {
+          const cb = confirmCallback;
+          closeConfirm();
+          if (typeof cb === 'function') cb();
+        });
+        confirmModal.addEventListener('click', (e) => {
+          if (e.target === confirmModal) closeConfirm();
+        });
+
+        // ---- Discreet Custom AI Micro-Setting & Config Modal ----
+        document.getElementById('secret-ai-settings-btn').addEventListener('click', () => {
+          settingsModal.classList.add('hidden');
+          syncAiConfigUI();
+          aiConfigModal.classList.remove('hidden');
+        });
+        document.getElementById('close-ai-config-btn').addEventListener('click', () => {
+          aiConfigModal.classList.add('hidden');
+        });
+        aiConfigModal.addEventListener('click', (e) => {
+          if (e.target === aiConfigModal) aiConfigModal.classList.add('hidden');
+        });
+
+        document.getElementById('ai-enable-toggle-btn').addEventListener('click', () => {
+          prefs.aiEnabled = !prefs.aiEnabled;
+          syncAiConfigUI();
+          savePrefs();
+          applyEyeSettings();
+        });
+
+        document.querySelectorAll('.ai-provider-btn').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            prefs.aiProvider = btn.dataset.provider;
+            if (prefs.aiProvider === 'gemini' && (!prefs.aiModel || prefs.aiModel === 'gpt-4o-mini')) {
+              prefs.aiModel = 'gemini-2.5-flash';
+            } else if (prefs.aiProvider === 'custom' && prefs.aiModel === 'gemini-2.5-flash') {
+              prefs.aiModel = 'gpt-4o-mini';
+            }
+            syncAiConfigUI();
+          });
+        });
+
+        function persistAiConfigInputs() {
+          prefs.aiEndpoint = document.getElementById('ai-endpoint-input').value.trim();
+          prefs.aiModel = document.getElementById('ai-model-input').value.trim();
+          prefs.aiApiKey = document.getElementById('ai-key-input').value.trim();
+          prefs.aiSystemPrompt =
+            document.getElementById('ai-system-input').value.trim() || DEFAULT_PREFS.aiSystemPrompt;
+          savePrefs();
+          applyEyeSettings();
+        }
+
+        document.getElementById('save-ai-config-btn').addEventListener('click', () => {
+          persistAiConfigInputs();
+          aiConfigModal.classList.add('hidden');
+          showToast('Custom AI settings saved locally');
+        });
+
+        document.getElementById('open-chat-from-config-btn').addEventListener('click', () => {
+          persistAiConfigInputs();
+          aiConfigModal.classList.add('hidden');
+          openAiChatModal();
+        });
+
+        // ---- Page-Context AI Chat Modal ----
+        document.getElementById('ai-chat-trigger-btn').addEventListener('click', openAiChatModal);
+        document.getElementById('close-ai-chat-btn').addEventListener('click', () => {
+          aiChatModal.classList.add('hidden');
+        });
+        aiChatModal.addEventListener('click', (e) => {
+          if (e.target === aiChatModal) aiChatModal.classList.add('hidden');
+        });
+        document.getElementById('ai-chat-gear-btn').addEventListener('click', () => {
+          aiChatModal.classList.add('hidden');
+          syncAiConfigUI();
+          aiConfigModal.classList.remove('hidden');
+        });
+        document.getElementById('ai-clear-chat-btn').addEventListener('click', () => {
+          aiChatHistory = [];
+          renderAiChatMessages();
+        });
+        document.querySelectorAll('.ai-quick-chip').forEach((chip) => {
+          chip.addEventListener('click', () => sendAiChatMessage(chip.dataset.prompt));
+        });
+        document.getElementById('ai-chat-form').addEventListener('submit', (e) => {
+          e.preventDefault();
+          const inp = document.getElementById('ai-chat-input');
+          const val = inp.value.trim();
+          if (!val) return;
+          inp.value = '';
+          sendAiChatMessage(val);
+        });
+
+        // ---- Reading Stage: Smooth Pinch-to-Zoom (Anchored & Flicker-Free) + Swipe ----
+        const stage = document.getElementById('reading-stage');
+        const pdfCanvas = document.getElementById('pdf-canvas');
+        let touchStartX = 0;
+        let touchStartY = 0;
+
+        let isPinching = false;
+        let pinchSessionLocked = false;
+        let pinchStartDist = 0;
+        let pinchStartZoom = 1.0;
+        let pinchStartFontSize = 18;
+        let pendingPinchZoom = 1.0;
+        let pinchFocalRatioX = 0.5;
+        let pinchFocalRatioY = 0.2;
+        let lastPinchEndTime = 0;
+
+        function getTouchDistance(t1, t2) {
+          return Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+        }
+
+        stage.addEventListener('touchstart', (e) => {
+          if (prefs.pinchZoom && e.touches.length === 2) {
+            isPinching = true;
+            pinchSessionLocked = true;
+            pinchStartDist = Math.max(24, getTouchDistance(e.touches[0], e.touches[1]));
+            pinchStartZoom = prefs.zoom;
+            pendingPinchZoom = prefs.zoom;
+            pinchStartFontSize = prefs.fontSize;
+
+            // Anchor visual scaling & post-render scroll to the midpoint between the two fingers
+            const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+            const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+            const stageRect = stage.getBoundingClientRect();
+            const canvasRect = pdfCanvas.getBoundingClientRect();
+
+            if (stage.scrollWidth > 0) {
+              pinchFocalRatioX = Math.max(0, Math.min(1, (stage.scrollLeft + (midX - stageRect.left)) / stage.scrollWidth));
+            }
+            if (stage.scrollHeight > 0) {
+              pinchFocalRatioY = Math.max(0, Math.min(1, (stage.scrollTop + (midY - stageRect.top)) / stage.scrollHeight));
+            }
+
+            if (canvasRect.width > 0 && canvasRect.height > 0) {
+              const originX = Math.max(0, Math.min(100, ((midX - canvasRect.left) / canvasRect.width) * 100));
+              const originY = Math.max(0, Math.min(100, ((midY - canvasRect.top) / canvasRect.height) * 100));
+              pdfCanvas.style.transformOrigin = `${originX.toFixed(1)}% ${originY.toFixed(1)}%`;
+            }
+          } else if (e.touches.length === 1 && !pinchSessionLocked) {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+          }
+        }, { passive: true });
+
+        stage.addEventListener('touchmove', (e) => {
+          if (!isPinching || !prefs.pinchZoom || e.touches.length !== 2) return;
+          e.preventDefault();
+
+          const currentDist = getTouchDistance(e.touches[0], e.touches[1]);
+          const ratio = currentDist / pinchStartDist;
+
+          if (prefs.viewMode === 'text' || (activeBook && activeBook.isDemo)) {
+            const nextFont = Math.max(12, Math.min(34, Math.round(pinchStartFontSize * ratio)));
+            if (nextFont !== prefs.fontSize) {
+              prefs.fontSize = nextFont;
+              applyEyeSettings();
+            }
+            showZoomBadge(`${nextFont}px`);
+          } else {
+            pendingPinchZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, +(pinchStartZoom * ratio).toFixed(2)));
+            const visualScale = pendingPinchZoom / prefs.zoom;
+            pdfCanvas.style.transform = `scale(${visualScale})`;
+            showZoomBadge(`${Math.round(pendingPinchZoom * 100)}%`);
+          }
+        }, { passive: false });
+
+        stage.addEventListener('touchend', (e) => {
+          if (isPinching && e.touches.length < 2) {
+            isPinching = false;
+            lastPinchEndTime = Date.now();
+
+            if (prefs.viewMode === 'text' || (activeBook && activeBook.isDemo)) {
+              savePrefs();
+            } else if (Math.abs(pendingPinchZoom - prefs.zoom) >= 0.03) {
+              prefs.zoom = pendingPinchZoom;
+              savePrefs();
+              updateZoomButtonLabel();
+              // Keep CSS scale visible while crisp offscreen canvas renders — ZERO snap-back!
+              renderCurrentPage({
+                preserveScroll: true,
+                silent: true,
+                focalRatioX: pinchFocalRatioX,
+                focalRatioY: pinchFocalRatioY
+              });
+            } else {
+              pdfCanvas.style.transform = '';
+            }
+          }
+
+          // Only unlock gesture session once ALL fingers leave the screen
+          if (e.touches.length === 0) {
+            if (pinchSessionLocked) {
+              pinchSessionLocked = false;
+              lastPinchEndTime = Date.now();
+              return;
+            }
+          } else {
+            return;
+          }
+
+          if (Date.now() - lastPinchEndTime < 400) return;
+
+          // Swipe left/right to turn pages ONLY when at normal Fit Width (<= 105%), never while panning zoomed math!
+          if (e.changedTouches.length === 1 && prefs.zoom <= 1.05) {
+            const dx = e.changedTouches[0].clientX - touchStartX;
+            const dy = e.changedTouches[0].clientY - touchStartY;
+            if (Math.abs(dx) > 75 && Math.abs(dy) < 45) {
+              if (dx < 0 && currentPage < totalPages) {
+                goToPage(currentPage + 1);
+              } else if (dx > 0 && currentPage > 1) {
+                goToPage(currentPage - 1);
+              }
+            }
+          }
+        }, { passive: true });
+
+        stage.addEventListener('touchcancel', () => {
+          isPinching = false;
+          pinchSessionLocked = false;
+          lastPinchEndTime = Date.now();
+          pdfCanvas.style.transform = '';
+        }, { passive: true });
+
+        stage.addEventListener('click', (e) => {
+          if (e.target.closest('button')) return;
+          if (Date.now() - lastPinchEndTime < 400) return;
+          toggleHudVisibility();
+        });
+
+        // ---- Keyboard Shortcuts ----
+        document.addEventListener('keydown', (e) => {
+          if (!activeBook || isResting) return;
+          if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+          if (e.key === 'ArrowRight' || e.key === 'PageDown') {
+            e.preventDefault();
+            goToPage(currentPage + 1);
+          } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+            e.preventDefault();
+            goToPage(currentPage - 1);
+          } else if (e.key.toLowerCase() === 'f') {
+            toggleFullscreen();
+          }
+        });
+
+        // ---- Only re-render on real width change (orientation change), ignore mobile URL bar height jitter ----
+        let resizeTimeout = null;
+        window.addEventListener('resize', () => {
+          if (Math.abs(window.innerWidth - lastWindowWidth) < 20) return;
+          lastWindowWidth = window.innerWidth;
+          if (!activeBook || activeBook.isDemo || prefs.viewMode !== 'canvas') return;
+          clearTimeout(resizeTimeout);
+          resizeTimeout = setTimeout(() => {
+            renderCurrentPage({ preserveScroll: true, silent: true });
+          }, 220);
+        });
+      }
+
+      /* -------------------------------------------------------------------
+         13. INITIALIZE APPLICATION
+         ------------------------------------------------------------------- */
+      async function bootstrap() {
+        applyEyeSettings();
+        updateStatsUI();
+        bindEvents();
+
+        try {
+          await initDB();
+        } catch (err) {
+          console.error('IndexedDB failed:', err);
+          showToast('Local storage restricted in this browser mode.');
+        }
+
+        await refreshLibrary();
+      }
+
+      bootstrap();
+    })();
+  </script>
+</body>
+</html>
