@@ -291,6 +291,11 @@
       touch-action: pan-x pan-y;
     }
 
+    /* Allow vertical native scrolling while letting horizontal page swipes respond cleanly without sticking */
+    #reading-stage.swipe-ready {
+      touch-action: pan-y;
+    }
+
     #reading-stage.is-dragging-selection {
       touch-action: none !important;
       overflow: hidden !important;
@@ -2560,6 +2565,7 @@
 
         const stage = document.getElementById('reading-stage');
         if (stage) stage.classList.toggle('pinch-enabled', !!prefs.pinchZoom);
+        updateStageTouchAction();
 
         const aiBtn = document.getElementById('ai-chat-trigger-btn');
         if (aiBtn) aiBtn.classList.toggle('hidden', !prefs.aiEnabled);
@@ -2825,6 +2831,14 @@
       /* -------------------------------------------------------------------
          10C. 1-TAP CONTEXTUAL WORD LOOKUP ("DEFINE" POPOVER)
          ------------------------------------------------------------------- */
+      function getBookMetadataLine() {
+        if (!activeBook) return 'Book: Unknown';
+        const title = activeBook.title || 'Unknown';
+        const hasDistinctFile = activeBook.fileName && activeBook.fileName !== title;
+        const fileNote = hasDistinctFile ? ` (File: "${activeBook.fileName}")` : '';
+        return `Book Title: "${title}"${fileNote} — Page ${currentPage} of ${totalPages}`;
+      }
+
       async function triggerQuickDefine(termText, anchorX, anchorY) {
         const cleanTerm = (termText || '').trim().slice(0, 140);
         if (!cleanTerm) return;
@@ -2855,16 +2869,21 @@
           return;
         }
 
-        bodyEl.textContent = `Looking up "${cleanTerm}" in context...`;
-        srcEl.textContent = `via ${primary.name}`;
+        bodyEl.textContent = `Looking up "${cleanTerm}" with full page & book context...`;
+        srcEl.textContent = `Full page + title • ${primary.name}`;
 
-        const pageText = (await getCurrentPageContextText()).slice(0, 3500);
+        // Always attach the full current page text + book/PDF title so in-universe & coined terms are understood
+        const fullPageText = (await getCurrentPageContextText()).slice(0, 12000);
+        const bookMeta = getBookMetadataLine();
         const sysPrompt =
-          'You are a concise contextual dictionary. Define the requested word or short phrase in 1 to 2 clear sentences specifically based on how it is used in the excerpt. No markdown headers.';
+          'You are a concise, context-aware literary and study dictionary. Always use BOTH the Book Title (recognizing any author-coined, fictional, in-universe, or domain-specific terminology from that book) AND the full page text to explain the requested word or phrase clearly in 2 to 3 sentences. No markdown headers.';
         const turns = [
           {
             role: 'user',
-            text: `Excerpt:\n${pageText}\n\nDefine concisely: "${cleanTerm}"`
+            text:
+              `${bookMeta}\n\n` +
+              `--- FULL CURRENT PAGE TEXT ---\n${fullPageText || '[No extractable text on this page]'}\n--- END PAGE TEXT ---\n\n` +
+              `Define "${cleanTerm}" based on this book and how it is used on this page.`
           }
         ];
 
@@ -2880,7 +2899,7 @@
             const answer = await callSingleAiProfile(cand, sysPrompt, turns);
             cand.lastStatus = 'ok';
             bodyEl.textContent = answer;
-            srcEl.textContent = `Context meaning • ${cand.name}`;
+            srcEl.textContent = `Full page + title • ${cand.name}`;
             savePrefs();
             return;
           } catch (e) {
@@ -3358,9 +3377,11 @@
         }
         let text = '';
         try {
-          if (activeBook.isDemo) {
+          if (isStructuredTextBook(activeBook)) {
             const p = activeBook.pages[currentPage - 1];
-            text = `${p.heading}\n\n${p.paragraphs.join('\n\n')}`;
+            if (p) {
+              text = `${p.heading ? p.heading + '\n\n' : ''}${(p.paragraphs || []).join('\n\n')}`;
+            }
           } else if (activeBook.textCache && activeBook.textCache[currentPage]) {
             text = activeBook.textCache[currentPage];
           } else if (activePdfDoc) {
@@ -3834,29 +3855,29 @@ Return ONLY the \`\`\`eyesafe-quiz\`\`\` JSON block with valid JSON.`;
         }
 
         const primary = getActiveAiProfile();
-        if (!primary) {
-          showToast('Add an AI model in settings first.');
-          return;
-        }
-
-        aiRequestInFlight = true;
-        document.getElementById('ai-send-btn').disabled = true;
-
-        const displayQuestion = isQuizMode ? '✦ Generate Interactive Study Questions' : cleanQ;
-        aiChatHistory.push({ role: 'user', text: displayQuestion });
-        aiChatHistory.push({ role: 'assistant', text: `Thinking with ${primary.name}...`, isPending: true });
-        renderAiChatMessages();
-
-        // Build context: strictly scoped selection if active, otherwise full page
+        // Build context: strictly scoped selection for passages, plus full page + title whenever defining words/terms
+        const bookMeta = getBookMetadataLine();
         let contextBlock = '';
         if (aiScopedSelection) {
-          contextBlock =
-            `Book: "${activeBook ? activeBook.title : 'Unknown'}" (Page ${currentPage}).\n` +
-            `--- USER SELECTED EXCERPT ONLY ---\n${aiScopedSelection.slice(0, 8000)}\n--- END EXCERPT ---`;
+          const wordCount = aiScopedSelection.split(/\s+/).filter(Boolean).length;
+          const isDefineOrTermQuery =
+            wordCount <= 8 ||
+            /\b(define|definition|meaning|mean|means|what is|who is|glossary|term|word)\b/i.test(cleanQ);
+          if (isDefineOrTermQuery) {
+            const fullPageText = await getCurrentPageContextText();
+            contextBlock =
+              `${bookMeta}\n` +
+              `--- TARGET WORD / EXCERPT ---\n${aiScopedSelection.slice(0, 4000)}\n--- END TARGET ---\n\n` +
+              `--- FULL CURRENT PAGE (FOR BOOK & SURROUNDING CONTEXT) ---\n${(fullPageText || '[No extractable text]').slice(0, 12000)}\n--- END FULL PAGE ---`;
+          } else {
+            contextBlock =
+              `${bookMeta}\n` +
+              `--- USER SELECTED EXCERPT ONLY ---\n${aiScopedSelection.slice(0, 8000)}\n--- END EXCERPT ---`;
+          }
         } else {
           const pageText = await getCurrentPageContextText();
           contextBlock =
-            `Book: "${activeBook ? activeBook.title : 'Unknown'}" (Page ${currentPage} of ${totalPages}).\n` +
+            `${bookMeta}\n` +
             `--- CURRENT PAGE TEXT ---\n${(pageText || '[No extractable text]').slice(0, 12000)}\n--- END PAGE TEXT ---`;
         }
 
@@ -5058,10 +5079,13 @@ Return ONLY the \`\`\`eyesafe-quiz\`\`\` JSON block with valid JSON.`;
             }
           }
 
+          textWrap.style.transform = '';
+          textWrap.style.transition = '';
           applyEndLineVisualOnCurrentPage(scrollToEndLine);
           applyHighlightsOnCurrentPage();
           updateNavigationControls();
           updateZoomButtonLabel();
+          updateStageTouchAction();
           saveCurrentProgress();
         } catch (err) {
           if (myTicket === renderTicket) {
@@ -6004,9 +6028,23 @@ Return ONLY the \`\`\`eyesafe-quiz\`\`\` JSON block with valid JSON.`;
       /* -------------------------------------------------------------------
          16. CUSTOM HOLD-AND-DRAG + TAP LINE + PINCH ZOOM + SWIPE ENGINE
          ------------------------------------------------------------------- */
+      function isHorizontallyZoomed() {
+        if (!activeBook) return false;
+        if (prefs.viewMode === 'text' || isStructuredTextBook(activeBook)) return false;
+        const stage = document.getElementById('reading-stage');
+        return prefs.zoom > 1.05 && Boolean(stage && stage.scrollWidth > stage.clientWidth + 12);
+      }
+
+      function updateStageTouchAction() {
+        const stage = document.getElementById('reading-stage');
+        if (!stage) return;
+        stage.classList.toggle('swipe-ready', !isHorizontallyZoomed());
+      }
+
       function bindReadingStageGestures() {
         const stage = document.getElementById('reading-stage');
         const stageInner = document.getElementById('pdf-stage-inner');
+        const textWrap = document.getElementById('text-reflow-wrapper');
 
         // Completely suppress native OS contextmenu / copy-paste bar inside reader
         stage.addEventListener('contextmenu', (e) => {
@@ -6020,6 +6058,13 @@ Return ONLY the \`\`\`eyesafe-quiz\`\`\` JSON block with valid JSON.`;
 
         let touchStartX = 0;
         let touchStartY = 0;
+        let touchStartTime = 0;
+        let touchStartScrollLeft = 0;
+        let lastTouchX = 0;
+        let lastTouchY = 0;
+        let swipeDirLocked = null; // null | 'h' | 'v'
+        let swipeResetTimer = null;
+
         let isPinching = false;
         let pinchSessionLocked = false;
         let pinchStartDist = 0;
@@ -6044,6 +6089,33 @@ Return ONLY the \`\`\`eyesafe-quiz\`\`\` JSON block with valid JSON.`;
 
         function getTouchDistance(t1, t2) {
           return Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+        }
+
+        function getActiveSwipeTarget() {
+          if (!activeBook) return null;
+          return prefs.viewMode === 'text' || isStructuredTextBook(activeBook) ? textWrap : stageInner;
+        }
+
+        function resetSwipeTransform(animate = false) {
+          clearTimeout(swipeResetTimer);
+          const targets = [stageInner, textWrap];
+          targets.forEach((el) => {
+            if (!el) return;
+            if (animate && el.style.transform) {
+              el.style.transition = 'transform 0.16s ease-out';
+              el.style.transform = '';
+            } else {
+              el.style.transition = '';
+              el.style.transform = '';
+            }
+          });
+          if (animate) {
+            swipeResetTimer = setTimeout(() => {
+              targets.forEach((el) => {
+                if (el) el.style.transition = '';
+              });
+            }, 175);
+          }
         }
 
         function findTokenAtPoint(x, y) {
@@ -6103,6 +6175,8 @@ Return ONLY the \`\`\`eyesafe-quiz\`\`\` JSON block with valid JSON.`;
           // 2-Finger Pinch Zoom
           if (prefs.pinchZoom && e.touches.length === 2) {
             cancelHoldTimer();
+            swipeDirLocked = null;
+            resetSwipeTransform(false);
             if (isHoldSelecting) finishHoldSelection();
             clearVisualSelection();
 
@@ -6137,6 +6211,11 @@ Return ONLY the \`\`\`eyesafe-quiz\`\`\` JSON block with valid JSON.`;
             const t = e.touches[0];
             touchStartX = t.clientX;
             touchStartY = t.clientY;
+            lastTouchX = t.clientX;
+            lastTouchY = t.clientY;
+            touchStartTime = Date.now();
+            touchStartScrollLeft = stage.scrollLeft;
+            swipeDirLocked = null;
             selStartClientX = t.clientX;
             selStartClientY = t.clientY;
 
@@ -6150,6 +6229,176 @@ Return ONLY the \`\`\`eyesafe-quiz\`\`\` JSON block with valid JSON.`;
               }, 260);
             }
           }
+        }, { passive: true });
+
+        stage.addEventListener('touchmove', (e) => {
+          // Handle Pinch Move
+          if (isPinching && prefs.pinchZoom && e.touches.length === 2) {
+            e.preventDefault();
+            const currentDist = getTouchDistance(e.touches[0], e.touches[1]);
+            const ratio = currentDist / pinchStartDist;
+
+            if (prefs.viewMode === 'text' || isStructuredTextBook(activeBook)) {
+              const nextFont = Math.max(12, Math.min(34, Math.round(pinchStartFontSize * ratio)));
+              if (nextFont !== prefs.fontSize) {
+                prefs.fontSize = nextFont;
+                applyEyeSettings();
+              }
+              showZoomBadge(`${nextFont}px`);
+            } else {
+              pendingPinchZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, +(pinchStartZoom * ratio).toFixed(2)));
+              stageInner.style.transform = `scale(${pendingPinchZoom / prefs.zoom})`;
+              showZoomBadge(`${Math.round(pendingPinchZoom * 100)}%`);
+            }
+            return;
+          }
+
+          // Handle Active Hold-and-Drag Selection
+          if (isHoldSelecting && e.touches.length === 1) {
+            e.preventDefault();
+            updateHoldSelection(e.touches[0].clientX, e.touches[0].clientY);
+            return;
+          }
+
+          // Handle 1-Finger Scroll vs Smooth Horizontal Page Swipe
+          if (e.touches.length === 1 && !pinchSessionLocked) {
+            const t = e.touches[0];
+            const dx = t.clientX - touchStartX;
+            const dy = t.clientY - touchStartY;
+            const absX = Math.abs(dx);
+            const absY = Math.abs(dy);
+            lastTouchX = t.clientX;
+            lastTouchY = t.clientY;
+
+            // Cancel hold timer as soon as finger moves naturally
+            if (holdTimer && Math.hypot(dx, dy) > 10) {
+              cancelHoldTimer();
+            }
+
+            // Lock swipe direction cleanly after 12px of movement
+            if (swipeDirLocked === null && Math.hypot(dx, dy) > 12) {
+              const zoomedH = isHorizontallyZoomed();
+              const atLeftEdge = touchStartScrollLeft <= 4;
+              const atRightEdge = touchStartScrollLeft + stage.clientWidth >= stage.scrollWidth - 4;
+              const canSwipeH = !zoomedH || (dx > 0 && atLeftEdge) || (dx < 0 && atRightEdge);
+
+              if (canSwipeH && absX > absY * 1.15) {
+                swipeDirLocked = 'h';
+                cancelHoldTimer();
+                if (currentSelection.mode) clearVisualSelection();
+              } else if (absY > absX * 1.1 || zoomedH) {
+                swipeDirLocked = 'v';
+              }
+            }
+
+            // Smooth horizontal drag feedback while preventing vertical scroll wobble
+            if (swipeDirLocked === 'h') {
+              e.preventDefault();
+              const targetEl = getActiveSwipeTarget();
+              if (targetEl) {
+                const hasPageInDir = (dx < 0 && currentPage < totalPages) || (dx > 0 && currentPage > 1);
+                const shift = hasPageInDir
+                  ? Math.max(-96, Math.min(96, dx * 0.48))
+                  : Math.max(-24, Math.min(24, dx * 0.14));
+                targetEl.style.transition = '';
+                targetEl.style.transform = `translate3d(${shift.toFixed(1)}px, 0, 0)`;
+              }
+            }
+          }
+        }, { passive: false });
+
+        stage.addEventListener('touchend', (e) => {
+          cancelHoldTimer();
+
+          if (isHoldSelecting) {
+            finishHoldSelection();
+            return;
+          }
+
+          // Complete locked horizontal page swipe cleanly
+          if (swipeDirLocked === 'h' && e.touches.length === 0) {
+            swipeDirLocked = null;
+            const endTouch = e.changedTouches && e.changedTouches[0];
+            const dx = (endTouch ? endTouch.clientX : lastTouchX) - touchStartX;
+            const dt = Math.max(1, Date.now() - touchStartTime);
+            const velocity = Math.abs(dx) / dt;
+            const shouldTurn = Math.abs(dx) >= 48 || (Math.abs(dx) >= 26 && velocity >= 0.32);
+
+            suppressNextClick = true;
+            setTimeout(() => {
+              suppressNextClick = false;
+            }, 180);
+
+            if (shouldTurn && dx < 0 && currentPage < totalPages) {
+              resetSwipeTransform(false);
+              goToPage(currentPage + 1);
+            } else if (shouldTurn && dx > 0 && currentPage > 1) {
+              resetSwipeTransform(false);
+              goToPage(currentPage - 1);
+            } else {
+              resetSwipeTransform(true);
+            }
+            return;
+          }
+
+          if (isPinching && e.touches.length < 2) {
+            isPinching = false;
+            lastPinchEndTime = Date.now();
+
+            if (prefs.viewMode === 'text' || isStructuredTextBook(activeBook)) {
+              savePrefs();
+            } else if (Math.abs(pendingPinchZoom - prefs.zoom) >= 0.03) {
+              prefs.zoom = pendingPinchZoom;
+              savePrefs();
+              updateZoomButtonLabel();
+              renderCurrentPage({
+                preserveScroll: true,
+                silent: true,
+                focalRatioX: pinchFocalRatioX,
+                focalRatioY: pinchFocalRatioY
+              });
+            } else {
+              stageInner.style.transform = '';
+            }
+          }
+
+          if (e.touches.length === 0) {
+            if (pinchSessionLocked) {
+              pinchSessionLocked = false;
+              lastPinchEndTime = Date.now();
+              return;
+            }
+          } else {
+            return;
+          }
+
+          const wasVerticalScroll = swipeDirLocked === 'v';
+          swipeDirLocked = null;
+          if (Date.now() - lastPinchEndTime < 400 || wasVerticalScroll) return;
+
+          // Fallback quick-flick swipe check when not horizontally zoomed
+          if (e.changedTouches.length === 1 && !isHorizontallyZoomed()) {
+            const dx = e.changedTouches[0].clientX - touchStartX;
+            const dy = e.changedTouches[0].clientY - touchStartY;
+            if (Math.abs(dx) >= 44 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+              suppressNextClick = true;
+              setTimeout(() => {
+                suppressNextClick = false;
+              }, 180);
+              if (dx < 0 && currentPage < totalPages) goToPage(currentPage + 1);
+              else if (dx > 0 && currentPage > 1) goToPage(currentPage - 1);
+            }
+          }
+        }, { passive: true });
+
+        stage.addEventListener('touchcancel', () => {
+          cancelHoldTimer();
+          if (isHoldSelecting) finishHoldSelection();
+          swipeDirLocked = null;
+          resetSwipeTransform(false);
+          isPinching = false;
+          pinchSessionLocked = false;
+          lastPinchEndTime = Date.now();
         }, { passive: true });
 
         stage.addEventListener('touchmove', (e) => {
@@ -6445,73 +6694,16 @@ Return ONLY the \`\`\`eyesafe-quiz\`\`\` JSON block with valid JSON.`;
         document.getElementById('define-ask-more-btn').addEventListener('click', () => {
           const term = document.getElementById('define-popover').dataset.term || '';
           document.getElementById('define-popover').classList.add('hidden');
-          openAiChatModal(term);
-        });
-
-        // ---- Library Unique Sanctuary Controls ----
-        document.querySelectorAll('.shelf-cat-btn').forEach((btn) => {
-          btn.addEventListener('click', () => {
-            prefs.shelfCategory = btn.dataset.cat;
-            savePrefs();
-            refreshLibrary();
-          });
-        });
-        document.getElementById('view-shelf-btn').addEventListener('click', () => {
-          prefs.shelfView = 'shelf';
-          savePrefs();
-          refreshLibrary();
-        });
-        document.getElementById('view-grid-btn').addEventListener('click', () => {
-          prefs.shelfView = 'grid';
-          savePrefs();
-          refreshLibrary();
-        });
-        document.getElementById('shelf-search-input').addEventListener('input', () => refreshLibrary());
-
-        document.getElementById('goal-cycle-btn').addEventListener('click', () => {
-          const goals = [15, 30, 45, 60];
-          const cur = prefs.dailyGoalMin || 30;
-          prefs.dailyGoalMin = goals[(goals.indexOf(cur) + 1) % goals.length];
-          savePrefs();
-          updateStatsUI();
-          showToast(`Daily reading goal set to ${prefs.dailyGoalMin} minutes`);
-        });
-
-        document.getElementById('lib-deck-btn').addEventListener('click', openStudyDeckModal);
-        document.getElementById('open-deck-from-notes-btn').addEventListener('click', () => {
-          jumpModal.classList.add('hidden');
-          openStudyDeckModal();
-        });
-        document.getElementById('close-deck-btn').addEventListener('click', () => {
-          document.getElementById('deck-modal').classList.add('hidden');
-        });
-        document.getElementById('deck-modal').addEventListener('click', (e) => {
-          if (e.target.id === 'deck-modal') e.target.classList.add('hidden');
-        });
-        document.getElementById('deck-filter-btn').addEventListener('click', () => {
-          deckShowAll = !deckShowAll;
-          deckCurrentIdx = 0;
-          renderStudyDeckView();
-        });
-
-        // ---- Backup & Restore Modal ----
-        document.getElementById('lib-backup-btn').addEventListener('click', () => {
-          document.getElementById('backup-modal').classList.remove('hidden');
-        });
-        document.getElementById('close-backup-btn').addEventListener('click', () => {
-          document.getElementById('backup-modal').classList.add('hidden');
-        });
-        document.getElementById('backup-modal').addEventListener('click', (e) => {
-          if (e.target.id === 'backup-modal') e.target.classList.add('hidden');
-        });
-        document.getElementById('export-backup-btn').addEventListener('click', exportBackupJson);
-        document.getElementById('import-backup-btn').addEventListener('click', () => {
-          document.getElementById('import-backup-input').click();
-        });
-        document.getElementById('import-backup-input').addEventListener('change', (e) => {
-          if (e.target.files && e.target.files[0]) {
-            importBackupJson(e.target.files[0]);
-            e.target.value = '';
+          // Open AI chat in Full Page + Book Title context so the AI understands coined/in-universe terms
+          openAiChatModal('');
+          if (term) {
+            const definePrompt = `Define "${term}" in detail based on this book and how it is used on this page.`;
+            if (navigator.onLine) {
+              sendAiChatMessage(definePrompt, false);
+            } else {
+              const inp = document.getElementById('ai-chat-input');
+              if (inp) inp.value = definePrompt;
+            }
           }
         });
 
