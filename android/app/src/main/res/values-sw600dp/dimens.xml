@@ -1,6 +1,0 @@
-<resources>
-    <dimen name="reader_max_width">840dp</dimen>
-    <dimen name="reader_padding">36dp</dimen>
-    <dimen name="sidebar_width">280dp</dimen>
-    <dimen name="library_card_min_width">210dp</dimen>
-</resources>

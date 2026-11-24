@@ -1,8 +1,0 @@
-<resources>
-    <item name="library_list" type="id" />
-    <item name="reader_content" type="id" />
-    <item name="tablet_sidebar" type="id" />
-    <item name="main_root" type="id" />
-    <item name="reader_text" type="id" />
-    <item name="reader_page_label" type="id" />
-</resources>

@@ -1,15 +1,5 @@
 # EyeSafe Reader
 
-## Native Android app
-
-The repository now includes a native, tablet-adaptive Android reader in [`android/`](android/README.md), inspired by the HTML app. It supports Android 6.0+, with primary support and emulator testing for Android 10+.
-
-**[Build / download the Android APK through GitHub Actions](https://github.com/krishn03id/playground/actions/workflows/android-apk.yml)**. A successful run provides the **EyeSafe-Reader-APK** artifact containing `EyeSafe-Reader.apk`.
-
-See the [Android README](android/README.md) for native features, file-access permissions, tablet behavior, and signing/build details.
-
-## Web reader
-
 EyeSafe Reader is a mobile-friendly, privacy-focused reading and study app contained in a single `index.html` file. It opens PDF, EPUB, TXT, and Markdown files in the browser, stores books and reading progress locally, and adds eye-care, annotation, study, and optional AI tools.
 
 ## Features
@@ -123,9 +113,7 @@ Unsupported APIs fail gracefully, but the related feature may be unavailable.
 ```text
 .
 ├── index.html   # Complete UI, styles, storage, parsing, and application logic
-├── android/     # Native Android app, tests, and Android documentation
-├── .github/workflows/android-apk.yml  # GitHub Actions APK builds
-└── README.md    # Web and native project documentation
+└── README.md    # Project documentation
 ```
 
-The web reader has no framework, build system, package manifest, or server component. The native Android app uses Gradle and builds its APK through GitHub Actions.
+The project intentionally has no framework, build system, package manifest, or server component.
