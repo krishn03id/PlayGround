@@ -690,7 +690,10 @@ public final class MainActivity extends Activity {
         readingText.setLetterSpacing(Math.max(0, Math.min(.2f, settings.number("letterSpacing", 0) / 100f)));
         String font = settings.text("font", "serif");
         readingText.setTypeface(Typeface.create("mono".equals(font) ? "monospace" : "sans".equals(font) ? "sans-serif" : "wide".equals(font) ? "sans-serif-medium" : "serif", Typeface.NORMAL));
-        if (Build.VERSION.SDK_INT >= 26) readingText.setJustificationMode(settings.flag("justify", false) ? Layout.JUSTIFICATION_MODE_INTER_WORD : Layout.JUSTIFICATION_MODE_NONE);
+        // These integer constants are inlined, so the API 26 TextView method remains compatible.
+        if (Build.VERSION.SDK_INT >= 26) readingText.setJustificationMode(settings.flag("justify", false)
+                ? android.graphics.text.LineBreaker.JUSTIFICATION_MODE_INTER_WORD
+                : android.graphics.text.LineBreaker.JUSTIFICATION_MODE_NONE);
         readingText.setTextDirection(View.TEXT_DIRECTION_FIRST_STRONG);
     }
 
@@ -895,6 +898,9 @@ public final class MainActivity extends Activity {
         ui.add(index, ui.button("Export notes .md", true, view -> {
             pendingMarkdown = store.markdown(book); createDocument("text/markdown", book.title.replaceAll("[^a-zA-Z0-9_-]", "_") + "_notes.md", EXPORT_NOTES);
         }));
+        ui.add(index, ui.heading("Chapters", 17));
+        LinearLayout chapters = ui.column();
+        ui.add(index, chapters);
         if (book.endPage >= 0) ui.add(index, ui.button("⚑ End Line · Page " + (book.endPage + 1), false, view -> resumeEnd()));
         ui.add(index, ui.heading("Highlights, notes & bookmarks", 17));
         List<JSONObject> notes = store.annotations(book.id, -1);
@@ -911,7 +917,21 @@ public final class MainActivity extends Activity {
             card.addView(actions); ui.add(index, card);
         }
         ScrollView scroll = new ScrollView(this); scroll.addView(index);
-        show(dialog("Book index & study notes", scroll).setNegativeButton("Close", null));
+        AlertDialog dialog = show(dialog("Book index & study notes", scroll).setNegativeButton("Close", null));
+        DocumentSession document = session;
+        if (document != null) io.execute(() -> {
+            try {
+                JSONArray toc = document.chapters();
+                main.post(() -> {
+                    if (destroyed || !dialog.isShowing() || current != book) return;
+                    if (toc.length() == 0) ui.add(chapters, ui.label("No embedded chapter outline. Use page jump or search.", 14, ui.muted));
+                    for (int i = 0; i < Math.min(150, toc.length()); i++) {
+                        JSONObject chapter = toc.optJSONObject(i);
+                        if (chapter != null) ui.add(chapters, ui.button(chapter.optString("title"), false, view -> { dialog.dismiss(); jump(chapter.optInt("page")); }));
+                    }
+                });
+            } catch (Exception ignored) { }
+        });
     }
 
     private void searchDialog() {
