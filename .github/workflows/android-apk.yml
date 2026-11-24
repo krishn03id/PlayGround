@@ -82,6 +82,7 @@ jobs:
           fi
           cd artifacts
           sha256sum EyeSafe-Reader.apk > EyeSafe-Reader.apk.sha256
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose EyeSafe-Reader.apk
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
@@ -135,6 +136,11 @@ jobs:
         with:
           packages: 'platform-tools'
       - uses: gradle/actions/setup-gradle@v4
+      - name: Download the APK produced by the build job
+        uses: actions/download-artifact@v4
+        with:
+          name: EyeSafe-Reader-APK
+          path: android/artifacts/apk/
       - name: Enable emulator acceleration
         run: |
           sudo chmod 666 /dev/kvm
@@ -154,6 +160,11 @@ jobs:
             adb shell run-as io.github.krishn03id.eyesafe.debug ls files/screenshots
             adb exec-out run-as io.github.krishn03id.eyesafe.debug tar -C files/screenshots -cf - . > artifacts/screenshots.tar
             tar -xf artifacts/screenshots.tar -C artifacts/screenshots
+            adb install -r artifacts/apk/EyeSafe-Reader.apk
+            app_id=$(apkanalyzer manifest application-id artifacts/apk/EyeSafe-Reader.apk)
+            adb shell am start -W -n "$app_id/io.github.krishn03id.eyesafe.MainActivity"
+            sleep 5
+            adb shell pidof "$app_id"
       - name: Upload device test results and native screenshots
         if: always()
         uses: actions/upload-artifact@v4

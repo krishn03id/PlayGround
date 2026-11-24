@@ -28,6 +28,9 @@ import java.util.zip.ZipOutputStream;
 
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
+import static androidx.test.espresso.action.ViewActions.scrollTo;
+import static androidx.test.espresso.assertion.ViewAssertions.matches;
+import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 import static org.junit.Assert.*;
 
@@ -88,6 +91,10 @@ public class NativeReaderTest {
                     assertNotNull(activity.findViewById(R.id.tablet_sidebar));
             });
             capture("native-sample-landscape");
+            onView(withText("Full mode")).perform(scrollTo(), click());
+            onView(withText("Exit full mode")).check(matches(isDisplayed()));
+            capture("native-fullscreen");
+            onView(withText("Exit full mode")).perform(click());
         }
     }
 

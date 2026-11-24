@@ -79,6 +79,8 @@ public final class MainActivity extends Activity {
     private LibraryAdapter library;
     private TextView libraryStats, emptyLibrary, pageLabel, timerLabel, readingText;
     private LinearLayout sidebar;
+    private View readerHeader, readerToolbar, readerFooter, readerNavigation;
+    private Button exitImmersive;
     private ComfortScrollView textScroll;
     private PdfPageView pdf;
     private Book current;
@@ -204,12 +206,21 @@ public final class MainActivity extends Activity {
         });
         setContentView(root);
         root.requestApplyInsets();
+        exitImmersive = null;
+        if (current != null) {
+            exitImmersive = ui.button("Exit full mode", true, view -> toggleImmersive());
+            FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ui.dp(48), Gravity.BOTTOM | Gravity.END);
+            params.setMargins(ui.dp(12), ui.dp(12), ui.dp(12), ui.dp(12));
+            root.addView(exitImmersive, params);
+        }
+        applyImmersive();
     }
 
     private void showLibrary() {
         renderTicket++;
         if (pdf != null) { pdf.clear(); pdf = null; }
         current = null;
+        immersive = false;
         stopSpeaking(); stopScroll();
         if (restDialog != null) { restDialog.dismiss(); restDialog = null; }
         DocumentSession old = session; session = null;
@@ -387,6 +398,7 @@ public final class MainActivity extends Activity {
         top.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
         top.addView(ui.button("Eye & Text", false, view -> showSettings()));
         body.addView(top);
+        readerHeader = top;
         HorizontalScrollView toolScroll = new HorizontalScrollView(this);
         toolScroll.setHorizontalScrollBarEnabled(false);
         LinearLayout tools = ui.row();
@@ -401,6 +413,7 @@ public final class MainActivity extends Activity {
         toolButton(tools, "Full mode", view -> toggleImmersive());
         toolScroll.addView(tools);
         body.addView(toolScroll);
+        readerToolbar = toolScroll;
         LinearLayout stage = ui.row();
         if (tablet()) {
             ScrollView navigation = new ScrollView(this);
@@ -408,10 +421,22 @@ public final class MainActivity extends Activity {
             sidebar.setPadding(ui.dp(16), ui.dp(18), ui.dp(16), ui.dp(18));
             sidebar.setBackgroundColor(ui.surface);
             navigation.addView(sidebar);
+            readerNavigation = navigation;
             stage.addView(navigation, new LinearLayout.LayoutParams(getResources().getDimensionPixelSize(R.dimen.sidebar_width), ViewGroup.LayoutParams.MATCH_PARENT));
-        } else sidebar = null;
+        } else { sidebar = null; readerNavigation = null; }
         readerFrame = new FrameLayout(this);
         readerFrame.setId(R.id.reader_content);
+        readerFrame.addOnLayoutChangeListener((view, left, topEdge, right, bottomEdge, oldLeft, oldTop, oldRight, oldBottom) -> {
+            if (view != readerFrame) return;
+            if (readingText != null && textMode) {
+                int padding = getResources().getDimensionPixelSize(R.dimen.reader_padding);
+                int available = Math.max(ui.dp(180), right - left - padding * 2);
+                ViewGroup.LayoutParams params = readingText.getLayoutParams();
+                int width = Math.min(available, ui.dp(settings.number("width", tablet() ? 800 : 680)));
+                if (params.width != width) { params.width = width; readingText.setLayoutParams(params); }
+            }
+            if (!textMode && oldRight - oldLeft > 0 && right - left != oldRight - oldLeft) renderPage(false);
+        });
         stage.addView(readerFrame, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1));
         if (textMode) {
             textScroll = new ComfortScrollView(this, factor -> {
@@ -471,6 +496,7 @@ public final class MainActivity extends Activity {
         bottom.addView(center, new LinearLayout.LayoutParams(0, ui.dp(48), 1));
         bottom.addView(ui.button("Next ›", true, view -> turnPage(1)));
         body.addView(bottom);
+        readerFooter = bottom;
         install(body);
         updateTimer(); updatePageLabel(); refreshSidebar(); setAwake();
     }
@@ -1042,16 +1068,25 @@ public final class MainActivity extends Activity {
     }
 
     @SuppressWarnings("deprecation")
-    private void toggleImmersive() {
-        immersive = !immersive;
+    private void applyImmersive() {
+        if (current != null) {
+            int visibility = immersive ? View.GONE : View.VISIBLE;
+            if (readerHeader != null) readerHeader.setVisibility(visibility);
+            if (readerToolbar != null) readerToolbar.setVisibility(visibility);
+            if (readerFooter != null) readerFooter.setVisibility(visibility);
+            if (readerNavigation != null) readerNavigation.setVisibility(visibility);
+            if (exitImmersive != null) exitImmersive.setVisibility(immersive ? View.VISIBLE : View.GONE);
+        }
         if (Build.VERSION.SDK_INT >= 30) {
             android.view.WindowInsetsController controller = getWindow().getInsetsController();
             if (controller != null) {
                 controller.setSystemBarsBehavior(android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
                 if (immersive) controller.hide(WindowInsets.Type.systemBars()); else controller.show(WindowInsets.Type.systemBars());
             }
-        } else getWindow().getDecorView().setSystemUiVisibility(immersive ? View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY : 0);
+        } else getWindow().getDecorView().setSystemUiVisibility(immersive ? View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY : ui.light ? View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR : 0);
     }
+
+    private void toggleImmersive() { immersive = !immersive; applyImmersive(); }
 
     private void toggleScroll() {
         if (current == null || session == null) return;
@@ -1390,7 +1425,7 @@ public final class MainActivity extends Activity {
 
     @SuppressWarnings("deprecation")
     @Override public void onBackPressed() { handleBack(); }
-    private void handleBack() { if (current != null) showLibrary(); else finish(); }
+    private void handleBack() { if (current != null && immersive) toggleImmersive(); else if (current != null) showLibrary(); else finish(); }
 
     @Override public boolean onKeyDown(int key, KeyEvent event) {
         if (current != null) {

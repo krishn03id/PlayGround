@@ -10,7 +10,7 @@ android {
         applicationId 'io.github.krishn03id.eyesafe'
         minSdk 23
         targetSdk 35
-        versionCode (System.getenv('GITHUB_RUN_NUMBER') ?: '1').toInteger()
+        versionCode = (System.getenv('GITHUB_RUN_NUMBER') ?: '1').toInteger()
         versionName '1.0.0'
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
