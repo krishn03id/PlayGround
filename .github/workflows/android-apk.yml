@@ -1,0 +1,162 @@
+name: Build Android APK
+
+on:
+  push:
+    paths:
+      - 'android/**'
+      - '.github/workflows/android-apk.yml'
+  pull_request:
+    paths:
+      - 'android/**'
+      - '.github/workflows/android-apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    name: Compile, lint, test and package APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Install compile SDK
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Set up Gradle and validate wrapper
+        uses: gradle/actions/setup-gradle@v4
+      - name: Keep the debug signing identity stable for APK updates
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: eyesafe-debug-signing-v1
+      - name: Prepare protected release signing key
+        id: signing
+        env:
+          EYESAFE_KEY_PASSWORD: ${{ secrets.EYESAFE_KEY_PASSWORD }}
+          EYESAFE_SIGNING_STORE_BASE64: ${{ secrets.EYESAFE_SIGNING_STORE_BASE64 }}
+        run: |
+          if [ -n "$EYESAFE_KEY_PASSWORD" ]; then
+            store="$RUNNER_TEMP/eyesafe-release.p12"
+            if [ -n "$EYESAFE_SIGNING_STORE_BASE64" ]; then
+              printf '%s' "$EYESAFE_SIGNING_STORE_BASE64" | base64 --decode > "$store"
+            else
+              keytool -genkeypair -keystore "$store" -storetype PKCS12 -alias eyesafe -keyalg RSA -keysize 4096 -validity 10000 -dname 'CN=EyeSafe Reader, OU=Android, O=krishn03id' -storepass:env EYESAFE_KEY_PASSWORD -keypass:env EYESAFE_KEY_PASSWORD
+              echo 'bootstrap=true' >> "$GITHUB_OUTPUT"
+            fi
+            chmod 600 "$store"
+            echo "EYESAFE_SIGNING_STORE=$store" >> "$GITHUB_ENV"
+          fi
+      - name: Compile, lint and run unit tests
+        env:
+          EYESAFE_KEY_PASSWORD: ${{ secrets.EYESAFE_KEY_PASSWORD }}
+        run: bash ./gradlew :app:assembleDebug :app:testDebugUnitTest :app:lintDebug --stacktrace
+      - name: Build optimized signed release
+        if: env.EYESAFE_SIGNING_STORE != ''
+        env:
+          EYESAFE_KEY_PASSWORD: ${{ secrets.EYESAFE_KEY_PASSWORD }}
+        run: bash ./gradlew :app:assembleRelease :app:lintRelease --stacktrace
+      - name: Prepare installable APK and checksum
+        run: |
+          mkdir -p artifacts
+          if [ -f app/build/outputs/apk/release/app-release.apk ]; then
+            cp app/build/outputs/apk/release/app-release.apk artifacts/EyeSafe-Reader.apk
+          else
+            cp app/build/outputs/apk/debug/app-debug.apk artifacts/EyeSafe-Reader.apk
+          fi
+          cd artifacts
+          sha256sum EyeSafe-Reader.apk > EyeSafe-Reader.apk.sha256
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: EyeSafe-Reader-APK
+          path: android/artifacts/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Export password-protected signing bootstrap for repository-secret setup
+        if: steps.signing.outputs.bootstrap == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Signing-bootstrap-encrypted
+          path: ${{ runner.temp }}/eyesafe-release.p12
+          retention-days: 1
+      - name: Upload unit tests and lint reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Android-build-reports
+          path: |
+            android/app/build/reports/
+            android/app/build/test-results/
+            android/app/build/outputs/mapping/release/
+          retention-days: 14
+
+  device-tests:
+    name: Android ${{ matrix.api }} · ${{ matrix.device }}
+    needs: apk
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - api: 29
+            device: phone
+            profile: pixel_2
+          - api: 35
+            device: tablet
+            profile: pixel_c
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Enable emulator acceleration
+        run: |
+          sudo chmod 666 /dev/kvm
+      - name: Run native import, PDF, EPUB, persistence and rotation tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api }}
+          target: google_apis
+          arch: x86_64
+          profile: ${{ matrix.profile }}
+          disable-animations: true
+          working-directory: android
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
+          script: |
+            bash ./gradlew :app:connectedDebugAndroidTest --stacktrace
+            mkdir -p artifacts/screenshots
+            adb shell run-as io.github.krishn03id.eyesafe.debug ls files/screenshots
+            adb exec-out run-as io.github.krishn03id.eyesafe.debug tar -C files/screenshots -cf - . > artifacts/screenshots.tar
+            tar -xf artifacts/screenshots.tar -C artifacts/screenshots
+      - name: Upload device test results and native screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Android-${{ matrix.api }}-${{ matrix.device }}-reports
+          path: |
+            android/app/build/reports/androidTests/
+            android/app/build/outputs/androidTest-results/
+            android/artifacts/screenshots/
+          retention-days: 14
